@@ -6,14 +6,14 @@
 
 enum{
   NUM_OF_PRIMES = 78498, // Number of primes between 1 and 10^6 according to the prime number theorem
-  LIMIT = 1000000
+  LIMIT = 1000000,
+  COUNT_LIMIT = 100002
 };
 
 void prime_decomposition(long long int num);
 void sieve_of_Eratosthenes(void);
 int find_smallest_prime_divisor(long long int);
 int primes[NUM_OF_PRIMES] = {0};
-int binary_search(int arr[], int left, int right, int target);
 
 int main(int argc, char *argv[])
 {
@@ -32,9 +32,7 @@ int main(int argc, char *argv[])
       printf("Prvociselny rozklad cisla 1 je:\n1\n");
       continue;
     }
-    if (binary_search(primes,0, NUM_OF_PRIMES - 1, num)){
-      printf("Prvociselny rozklad cisla %lld je:\n%lld\n", num,num);
-    } else prime_decomposition(num);
+    prime_decomposition(num);
   }
 }
 
@@ -70,8 +68,6 @@ void sieve_of_Eratosthenes(void){
 int find_smallest_prime_divisor(long long int num){
   // Checks for divisibility of num by some prime
 
-  if (binary_search(primes, 0, NUM_OF_PRIMES - 1, num)) return num;
-
   for (int i = 0; i < NUM_OF_PRIMES; ++i){
     if (num >= primes[i]){
       if (num % primes[i] == 0){
@@ -82,61 +78,43 @@ int find_smallest_prime_divisor(long long int num){
   return 0;
 }
 
-void prime_decomposition(long long int num){
-  int decompositoin[LIMIT] = {0};
+void prime_decomposition(long long int num) {
   long long int temp = num;
-  int division = find_smallest_prime_divisor(num);
   bool first = true;
 
-  // Preform prime decomposition
-  while (division != 0 && temp >= primes[0]){
-    printf("NUm");
-    temp = temp / division;
-    decompositoin[division - 2] += 1;
-    if (temp == division){
-      printf("TU");
-      decompositoin[division - 2] += 1;
-      temp = 0;
-    } else{
-      division = find_smallest_prime_divisor(temp);
-    }
-  }
-
-  // Print output
   printf("Prvociselny rozklad cisla %lld je:\n", num);
 
-  for (int i = 0; i < LIMIT; ++i) {
-    if (decompositoin[i] != 0) {
+  for (int i = 0; i < NUM_OF_PRIMES && primes[i] * primes[i] <= temp; i++) {
+    int prime = primes[i];
+    int count = 0;
+
+    while (temp % prime == 0) { // Count how many times the prime divides num
+      temp /= prime;
+      count++;
+    }
+
+    if (count > 0) {
       if (!first) {
-          printf(" x ");  // Print separator before all except the first factor
+        printf(" x ");
       }
-      if (decompositoin[i] != 1) {
-          printf("%d^%d", i + 2, decompositoin[i]);
+      if (count > 1) {
+        printf("%d^%d", prime, count);
       } else {
-          printf("%d", i + 2);
+        printf("%d", prime);
       }
-      first = false;  
+      first = false;
     }
   }
 
-  if (first) {  // If no factors were printed, it's a prime number itself
-      printf("%lld", num);
+  // If temp is still greater than 1, it must be a prime number itself
+  if (temp > 1) {
+      if (!first) {
+          printf(" x ");
+      }
+      printf("%lld", temp);
   }
 
-putchar('\n');
+  putchar('\n');
 }
 
-int binary_search(int arr[], int left, int right, int target) {
-  while (left <= right) {
-    int mid = left + (right - left) / 2;
-    
-    if (arr[mid] == target) {
-        return 1;  // Found
-    } else if (arr[mid] < target) {
-        left = mid + 1;
-    } else {
-        right = mid - 1;
-    }
-  }
-  return 0;  // Not found
-}
+
