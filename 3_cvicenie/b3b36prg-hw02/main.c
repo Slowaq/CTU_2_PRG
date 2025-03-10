@@ -3,9 +3,11 @@
 #include <stdbool.h>
 
 #define ERROR 100
-#define NUM_OF_PRIMES 78498 // Number of primes between 1 and 10^6 according to the prime number theorem
 
-#define LIMIT 1000000
+enum{
+  NUM_OF_PRIMES = 78498, // Number of primes between 1 and 10^6 according to the prime number theorem
+  LIMIT = 1000000
+};
 
 void prime_decomposition(long long int num);
 void sieve_of_Eratosthenes(void);
@@ -121,7 +123,7 @@ void prime_decomposition(long long int num){
       printf("%lld", num);
   }
 
-printf("\n");
+putchar('\n');
 }
 
 int binary_search(int arr[], int left, int right, int target) {

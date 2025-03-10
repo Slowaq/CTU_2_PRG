@@ -5,10 +5,12 @@
 #include <stdbool.h>
 
 #define ERROR 100
-#define MAX_LENGTH 100
-#define LIMIT 1000000
-#define NUM_OF_PRIMES 78498 // Number of primes between 1 and 10^6 according to the prime number theorem
 
+enum{
+  MAX_LENGTH = 100,
+  LIMIT = 1000000,
+  NUM_OF_PRIMES = 78498 // Number of primes between 1 and 10^6 according to the prime number theorem
+};
 
 int natural_number(char* num);
 int long_division(char* divident, int divisor, char *quotient);
@@ -137,7 +139,7 @@ void prime_decomposition(char* num){
         printf("%s", num);
     }
   
-  printf("\n");
+  putchar('\n');
 }
 
 void convert_int_to_array(int num, char* arr, int size){

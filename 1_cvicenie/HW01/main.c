@@ -85,7 +85,7 @@ void roof(int a, int b) {
     }
 
     repeat(a, "X");
-    printf("\n");
+    putchar('\n');
 }
 
 void repeat(int q, const char* x){
@@ -115,7 +115,7 @@ void fence(int c, int horizontal){
             repeat((c - 1) / 2, "-|");
         }
     }
-    printf("\n");
+    putchar('\n');
 }
 
 void body_with_fence(int a, int b, int c, int row, int column){
@@ -142,7 +142,7 @@ void house(int a, int b) {
     }
 
     repeat(a, "X");
-    printf("\n");
+    putchar('\n');
 }
 
 void house_fence(int a, int b, int c) {
@@ -164,5 +164,5 @@ void house_fence(int a, int b, int c) {
         printf("|");
         repeat((c - 1) / 2, "-|");
     }
-    printf("\n");
+    putchar('\n');
 }
