@@ -5,10 +5,10 @@
 
 #define OK 0
 #define ERROR 100
-#define ERROR_LENGHT 101
+#define ERROR_LENGTH 101
 
 enum{
-  STARTING_LENGHT = 20,
+  STARTING_LENGTH = 20,
   LETTERS_IN_ALPHABET = 26,
   JUMP = 6,  // Space between Z and a in ASCII Table
   RIGHT_BRACKET = 91 // ASCII position of [
@@ -18,91 +18,25 @@ void decipher(const char *str1, const char *str2);
 void shift(const char *str1, char* output, int offset);
 char rotate(char ch, int offset);
 int compare(const char *str1, const char *str2);
+char* read_input(int *lenght);
 
 int main(int argc, char *argv[])
 {
-  char *cipher = malloc(STARTING_LENGHT * sizeof(char));
-  char *echo = malloc(STARTING_LENGHT * sizeof(char));
+  int cipher_length;
+  int echo_length;
 
-  // Check for succesful allocation
-  if (!cipher || !echo){
-    fprintf(stderr, "Memory allocation failed");
-    free(cipher);
-    free(echo);
-    return ERROR;
-  }
+  char* cipher = read_input(&cipher_length);
+  if (!cipher) return ERROR;
 
-  // Populate the array
-  for (int i = 0; i < STARTING_LENGHT; ++i){
-    cipher[i] = '\0';
-    echo[i] = '\0';
-  }
+  char* echo = read_input(&echo_length);
+  if (!echo) return ERROR;
 
-  int position = 0;
-  int cipher_lenght = 0;
-  int lenght = STARTING_LENGHT;
-  char ch;
-
-  do{
-    // Realocate to a new memory if full
-    if (position >= lenght){
-      lenght *= 2;
-      cipher = realloc(cipher, lenght * sizeof(char));
-      echo = realloc(echo,lenght * sizeof(char));
-
-      if (cipher == NULL || echo == NULL){
-        fprintf(stderr, "Memory Reallocation Failed");
-        free(cipher);
-        free(echo);
-        return ERROR;
-      }
-    }
-
-    scanf("%c", &ch);
-
-    if (ch == '\n'){
-      cipher[position] = '\0';
-      break;
-    }
-    if (isalpha(ch) == 0){
-      fprintf(stderr, "Error: Chybny vstup!\n");
-      free(cipher);
-      free(echo);
-      return ERROR;
-    }
-    else{
-      cipher[position] = ch;
-      position++;
-    }
-  } while (ch != '\n');
-
-  cipher_lenght = position;
-  position = 0;
-  do{
-    scanf("%c", &ch);
-  
-    if (ch == '\n' || ch == EOF){
-      echo[position] = '\0';
-      break;
-    }
-    if (isalpha(ch) == 0){
-      fprintf(stderr, "Error: Chybny vstup!\n");
-      free(cipher);
-      free(echo);
-      return ERROR;
-    }
-    else{
-      echo[position] = ch;
-      position++;
-    }
-  } while (ch != '\n');
-
-  // Check for the same lenght
-  if (cipher_lenght != position){
+  // Check for the same length
+  if (cipher_length != echo_length){
     fprintf(stderr, "Error: Chybna delka vstupu!\n");
     free(cipher);
     free(echo);
-    return ERROR_LENGHT;
+    return ERROR_LENGTH;
   }
 
   decipher(cipher, echo);
@@ -114,6 +48,57 @@ int main(int argc, char *argv[])
   return OK;
 }
 
+char* read_input(int *lenght){
+  int capacity = STARTING_LENGTH;
+  char* buffer = calloc(capacity,  sizeof(char));
+
+  // Check for succesful allocation
+  if (!buffer){
+    fprintf(stderr, "Memory allocation failed");
+    free(buffer);
+    exit(ERROR);
+  }
+
+  int pos = 0;
+  char ch;
+
+  do{
+    // Realocate to a new memory if full
+    if (pos >= capacity){
+      capacity *= 2;
+      char* temp_buffer = realloc(buffer, capacity * sizeof(char));
+
+      if (temp_buffer == NULL){
+        fprintf(stderr, "Memory Reallocation Failed");
+        free(buffer);
+        exit (ERROR);
+      }
+
+      buffer = temp_buffer;
+    }
+    scanf("%c", &ch);
+
+    if (ch == '\n'){
+      buffer[pos] = '\0';
+      break;
+    }
+    if (isalpha(ch) == 0){
+      fprintf(stderr, "Error: Chybny vstup!\n");
+      free(buffer);
+      exit(ERROR);
+    }
+    else{
+      buffer[pos] = ch;
+      pos++;
+    }
+  } while (ch != '\n');
+  
+  *lenght = pos;
+  buffer[pos] = '\0'; // Null terminate
+
+
+  return buffer;
+}
 
 void decipher(const char *str1, const char *str2){
   int offset = 0;
@@ -130,7 +115,6 @@ void decipher(const char *str1, const char *str2){
     }
   }
 
-  //printf("%d,%d\n", best, offset);
   shift(str1, shifted_cipher, offset);
   
   printf("%s\n", shifted_cipher);
