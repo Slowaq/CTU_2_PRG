@@ -46,13 +46,13 @@ int main(int argc, char *argv[])
 
 char* read_input(int *lenght){
   int capacity = STARTING_LENGTH;
-  char* buffer = calloc(capacity,  sizeof(char));
+  char* buffer = (char*)calloc(capacity,  sizeof(char));
 
   // Check for succesful allocation
   if (!buffer){
     fprintf(stderr, "Memory allocation failed");
     free(buffer);
-    exit(ERROR);
+    exit(ERROR);     // TODO: dangling (or how tf they're called) pointers echo and cipher
   }
 
   int pos = 0;
@@ -64,7 +64,7 @@ char* read_input(int *lenght){
   
     scanf("%c", &ch);
 
-    if (ch == '\n'){
+    if (ch == '\n' || ch == EOF){
       buffer[pos] = '\0';
       break;
     }
@@ -87,7 +87,7 @@ char* read_input(int *lenght){
 
 char* realocate(char str[], int *capacity){
   *capacity *= 2;
-  char* temp_buffer = realloc(str, *capacity * sizeof(char));
+  char* temp_buffer = (char*)realloc(str, *capacity * sizeof(char));
 
   if (temp_buffer == NULL){
     fprintf(stderr, "Memory Reallocation Failed");
@@ -119,7 +119,6 @@ void decipher(const char str1[], const char str2[]){
 
 void shift(const char str1[], char output[], int offset){
   int len_cipher = strlen(str1);
-  //char temp[len_cipher + 1];
 
   for (int i = 0; i < len_cipher; ++i){
     output[i] = rotate(str1[i], offset);
@@ -129,12 +128,12 @@ void shift(const char str1[], char output[], int offset){
 
 char rotate(char ch, int offset) {
   if (isalpha(ch)) {
-      int base = isupper(ch) ? 'A' : 'a' - 26;  // 'A' is 0, 'a' is 26
-      int index = ch - base;  // Position in the 52-letter sequence
-      int new_index = (index + offset) % 52;  // Wrap around in the 52-letter range
-      
-      // Convert back to character
-      return (new_index < 26) ? ('A' + new_index) : ('a' + new_index - 26);
+   int base = isupper(ch) ? 'A' : 'a' - LETTERS_IN_ALPHABET;  // 'A' is 0, 'a' is 26
+   int index = ch - base;  // Position in the 52-letter sequence
+   int new_index = (index + offset) % (LETTERS_IN_ALPHABET * 2);  // Wrap around in the 52-letter range
+   
+   // Convert back to character
+   return (new_index < LETTERS_IN_ALPHABET) ? ('A' + new_index) : ('a' + new_index - LETTERS_IN_ALPHABET);
   }
   return ch;  // Non-alphabetic characters remain unchanged
 }

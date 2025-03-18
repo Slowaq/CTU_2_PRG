@@ -20,7 +20,6 @@ enum{
 void decipher(const char *str1, const char *str2);
 void shift(const char *str1, char* output, int offset);
 char rotate(char ch, int offset);
-int compare(const char *str1, const char *str2);
 int wagner_fischer(const char *str1, const char *str2);
 
 int main(int argc, char *argv[])
@@ -50,15 +49,18 @@ int main(int argc, char *argv[])
     // Realocate to a new memory if full
     if (position >= lenght){
       lenght *= 2;
-      cipher = realloc(cipher, lenght * sizeof(char));
-      echo = realloc(echo,lenght * sizeof(char));
+      char* temp_cipher = realloc(cipher, lenght * sizeof(char));
+      char* temp_echo = realloc(echo,lenght * sizeof(char));
 
-      if (cipher == NULL || echo == NULL){
+      if (temp_cipher == NULL || temp_echo == NULL){
         fprintf(stderr, "Memory Reallocation Failed");
         free(cipher);
         free(echo);
         return ERROR;
       }
+
+      cipher = temp_cipher;
+      echo = temp_echo;
     }
 
     scanf("%c", &ch);
@@ -118,7 +120,6 @@ void decipher(const char *str1, const char *str2){
 
   for (int i = 0; i < LETTERS_IN_ALPHABET * 2; ++i){  // Is 2 considered a magic number??
     shift(str1, shifted_cipher, i);
-    //int same = compare(str2, shifted_cipher);
     int distance = wagner_fischer(str2, shifted_cipher);
     if (distance < best){
       best = distance;
@@ -152,20 +153,6 @@ char rotate(char ch, int offset) {
       return (new_index < 26) ? ('A' + new_index) : ('a' + new_index - 26);
   }
   return ch;  // Non-alphabetic characters remain unchanged
-}
-
-
-int compare(const char *str1, const char *str2){
-  int len_cipher = strlen(str1);
-  int count = 0;
-
-  for (int i = 0; i < len_cipher; ++i){
-    // printf("%c,%c ", str1[i], str2[i]);
-    if (str1[i] == str2[i] && (str1[i] != '\0' || str2[i] != '\0'))
-      count += 1;
-  }
-  // printf("%d\n", count);
-  return count;
 }
 
 int wagner_fischer(const char *str1, const char *str2){
