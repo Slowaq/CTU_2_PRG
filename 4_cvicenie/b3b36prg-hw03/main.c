@@ -52,7 +52,7 @@ char* read_input(int *lenght){
   if (!buffer){
     fprintf(stderr, "Memory allocation failed");
     free(buffer);
-    exit(ERROR);     // TODO: dangling (or how tf they're called) pointers echo and cipher
+    exit(ERROR);     // TODO: danglingcd . (or how tf they're called) pointers echo and cipher
   }
 
   int pos = 0;
