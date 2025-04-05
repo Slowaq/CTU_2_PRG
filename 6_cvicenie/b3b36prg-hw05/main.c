@@ -15,13 +15,21 @@ typedef struct
   int cols;
 } Matrix;
 
+typedef struct
+{
+  int *output_values;
+  char *output_types;
+  int output_top;
+} PostfixOutput;
+
+
 
 int **read_matrix(int *row, int *col);
 int read_matrices_operators(Matrix **matrices, char **operators, int *num_matrices, int *num_operators);
 void print_matrix(int **matrix, int rows, int cols);
 void free_matrix(int **matrix, int rows);
 int precedence(char operator);
-void postfix(char **operators, int *num_matrices, int *num_operators);
+void postfix(char **operators, int *num_matrices, int *num_operators, PostfixOutput *out);
 
 int main(int argc, char *argv[])
 {
@@ -39,13 +47,40 @@ int main(int argc, char *argv[])
     putchar('\n');
   }
 
-  postfix(&operators, &num_matrices, &num_operators);
+  // Allocate memory for output of postfix conversion
+  int *output_values = (int*)malloc(sizeof(int) * (num_matrices + num_operators));   // Storing tokens of postfix expression
+  char *output_types = (char*)malloc(sizeof(char) * (num_matrices + num_operators)); // 'm' - matrix, 'o' - operator
+
+  if (!output_values || !output_types){
+    fprintf(stderr, "Memory allocation failed");
+    free(output_values);
+    free(output_types);
+    exit(ERROR);
+  }
+
+  PostfixOutput postfix_output = {.output_values = output_values, .output_types = output_types, .output_top = 0};
+
+  postfix(&operators, &num_matrices, &num_operators, &postfix_output);
+
+
+  // Print postfix order
+  printf("Postfix expression:\n");
+  for (int i = 0; i < postfix_output.output_top; ++i) {
+    if (postfix_output.output_types[i] == 'm') {
+      printf("M%d ", postfix_output.output_values[i]);
+    } else {
+      printf("%c ", postfix_output.output_values[i]);
+    }
+  }
+  printf("\n");
   
   for (int i = 0; i < num_matrices; ++i){
     free_matrix(matrices[i].data, matrices[i].rows);
   }
   free(matrices);
   free(operators);
+  free(output_values);
+  free(output_types);
 
   return OK;
 }
@@ -72,6 +107,8 @@ int read_matrices_operators(Matrix **matrices, char **operators, int *num_matric
       }
       free(matrices);
       free(operators);
+      fprintf(stderr, "Memory allocation failed");
+      return ERROR;
     }
     
     *matrices = temp_matrices;
@@ -91,6 +128,8 @@ int read_matrices_operators(Matrix **matrices, char **operators, int *num_matric
       }
       free(matrices);
       free(operators);
+      fprintf(stderr, "Memory allocation failed");
+      return ERROR;
     } 
 
     *operators = temp_operators;
@@ -166,41 +205,38 @@ void print_matrix(int **matrix, int rows, int cols)
   }
 }
 
-int precedence(char operator){
+int precedence(char operator)
+{
   if (operator == '*') return 3;
   if (operator == '+') return 2;
   if (operator == '-') return 2;
   return ERROR;
 }
 
-void postfix(char **operators, int *num_matrices, int *num_operators)   // TODO: make output available in main
+void postfix(char **operators, int *num_matrices, int *num_operators, PostfixOutput *out)
 {
   /*
     This method takes in array of matrices and array of operators, where operator at
     position i corresponds to matrices at positions (i - 1) and i and converts it to 
     postfix notation using Shunting yard algorith.
 
-    New arrays are created old ones are not tempered with.
+    Result is stored in out structure, other variables are not tempered with
   */
-
-  int output_queue[*num_matrices + *num_operators];     
-  char output_type[*num_matrices + *num_operators];     // 'm' - matrix, 'o' - operator
-  int output_top = 0;                                   // Keeping track of top position
 
   char operator_stack[*num_operators];
   int operator_top = 0;
 
   for (int i = 0; i < *num_matrices; ++i){
-    output_queue[output_top] = i;
-    output_type[output_top] = 'm';
-    output_top++;
+    (*out).output_values[(*out).output_top] = i;
+    (*out).output_types[(*out).output_top] = 'm';
+    (*out).output_top++;
 
     if (i < *num_operators){     // Since there is one less # of operators than # of matrices
       char current_op = (*operators)[i];
       while (operator_top > 0 && precedence(operator_stack[operator_top - 1]) >= precedence(current_op)){
-        output_queue[output_top] = operator_stack[--operator_top];
-        output_type[output_top] = 'o';
-        output_top++;
+        (*out).output_values[(*out).output_top] = operator_stack[--operator_top];
+        (*out).output_types[(*out).output_top] = 'o';
+        (*out).output_top++;
       }
       operator_stack[operator_top++] = current_op;
     }
@@ -208,20 +244,8 @@ void postfix(char **operators, int *num_matrices, int *num_operators)   // TODO:
 
   // Pop remaining operators
   while (operator_top > 0) {
-    output_queue[output_top] = operator_stack[--operator_top];
-    output_type[output_top] = 'o';
-    output_top++;
+    (*out).output_values[(*out).output_top] = operator_stack[--operator_top];
+    (*out).output_types[(*out).output_top] = 'o';
+    (*out).output_top++;
   }
-
-  // Print postfix order
-  printf("Postfix expression:\n");
-  for (int i = 0; i < output_top; ++i) {
-    if (output_type[i] == 'm') {
-      printf("M%d ", output_queue[i]);
-    } else {
-      printf("%c ", output_queue[i]);
-    }
-  }
-  printf("\n");
-
 }
