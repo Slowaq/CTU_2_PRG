@@ -20,6 +20,8 @@ int **read_matrix(int *row, int *col);
 int read_matrices_operators(Matrix **matrices, char **operators, int *num_matrices, int *num_operators);
 void print_matrix(int **matrix, int rows, int cols);
 void free_matrix(int **matrix, int rows);
+int precedence(char operator);
+void postfix(char **operators, int *num_matrices, int *num_operators);
 
 int main(int argc, char *argv[])
 {
@@ -36,6 +38,8 @@ int main(int argc, char *argv[])
     if (i < num_operators) printf("%c", operators[i]);
     putchar('\n');
   }
+
+  postfix(&operators, &num_matrices, &num_operators);
   
   for (int i = 0; i < num_matrices; ++i){
     free_matrix(matrices[i].data, matrices[i].rows);
@@ -160,4 +164,64 @@ void print_matrix(int **matrix, int rows, int cols)
       else printf("%d ", matrix[i][j]);
     }
   }
+}
+
+int precedence(char operator){
+  if (operator == '*') return 3;
+  if (operator == '+') return 2;
+  if (operator == '-') return 2;
+  return ERROR;
+}
+
+void postfix(char **operators, int *num_matrices, int *num_operators)   // TODO: make output available in main
+{
+  /*
+    This method takes in array of matrices and array of operators, where operator at
+    position i corresponds to matrices at positions (i - 1) and i and converts it to 
+    postfix notation using Shunting yard algorith.
+
+    New arrays are created old ones are not tempered with.
+  */
+
+  int output_queue[*num_matrices + *num_operators];     
+  char output_type[*num_matrices + *num_operators];     // 'm' - matrix, 'o' - operator
+  int output_top = 0;                                   // Keeping track of top position
+
+  char operator_stack[*num_operators];
+  int operator_top = 0;
+
+  for (int i = 0; i < *num_matrices; ++i){
+    output_queue[output_top] = i;
+    output_type[output_top] = 'm';
+    output_top++;
+
+    if (i < *num_operators){     // Since there is one less # of operators than # of matrices
+      char current_op = (*operators)[i];
+      while (operator_top > 0 && precedence(operator_stack[operator_top - 1]) >= precedence(current_op)){
+        output_queue[output_top] = operator_stack[--operator_top];
+        output_type[output_top] = 'o';
+        output_top++;
+      }
+      operator_stack[operator_top++] = current_op;
+    }
+  }
+
+  // Pop remaining operators
+  while (operator_top > 0) {
+    output_queue[output_top] = operator_stack[--operator_top];
+    output_type[output_top] = 'o';
+    output_top++;
+  }
+
+  // Print postfix order
+  printf("Postfix expression:\n");
+  for (int i = 0; i < output_top; ++i) {
+    if (output_type[i] == 'm') {
+      printf("M%d ", output_queue[i]);
+    } else {
+      printf("%c ", output_queue[i]);
+    }
+  }
+  printf("\n");
+
 }
