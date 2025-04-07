@@ -5,6 +5,7 @@
 
 enum{
   OK = 0,
+  FINE = 1,
   ERROR = 100
 };
 
@@ -23,13 +24,19 @@ typedef struct
 } PostfixOutput;
 
 
-
+int **allocate_matrix(int rows, int cols);
 int **read_matrix(int *row, int *col);
 int read_matrices_operators(Matrix **matrices, char **operators, int *num_matrices, int *num_operators);
 void print_matrix(int **matrix, int rows, int cols);
 void free_matrix(int **matrix, int rows);
 int precedence(char operator);
 void postfix(char **operators, int *num_matrices, int *num_operators, PostfixOutput *out);
+void sum(Matrix *matrix1, Matrix *matrix2, int **output);
+void subtract(Matrix *matrix1, Matrix *matrix2, int **output);
+void multiply(Matrix *matrix1, Matrix *matrix2, int **output);
+int check_dimensions(Matrix *matrix1, Matrix *matrix2, char operator);
+int **eval(Matrix *matrix1, Matrix *matrix2, char operator);
+Matrix *postfix_eval(Matrix **matrices, char **operators, int num_matrices, int num_operators, PostfixOutput postfix);
 
 int main(int argc, char *argv[])
 {
@@ -41,11 +48,11 @@ int main(int argc, char *argv[])
   if (read_matrices_operators(&matrices, &operators, &num_matrices, &num_operators) != 0)
     return ERROR;
 
-  for (int i = 0; i < num_matrices; ++i){
-    print_matrix(matrices[i].data, matrices[i].rows, matrices[i].cols);
-    if (i < num_operators) printf("%c", operators[i]);
-    putchar('\n');
-  }
+  // for (int i = 0; i < num_matrices; ++i){
+  //   print_matrix(matrices[i].data, matrices[i].rows, matrices[i].cols);
+  //   if (i < num_operators) printf("%c", operators[i]);
+  //   putchar('\n');
+  // }
 
   // Allocate memory for output of postfix conversion
   int *output_values = (int*)malloc(sizeof(int) * (num_matrices + num_operators));   // Storing tokens of postfix expression
@@ -62,17 +69,21 @@ int main(int argc, char *argv[])
 
   postfix(&operators, &num_matrices, &num_operators, &postfix_output);
 
+  //eval(&matrices[0], &matrices[1], '*');
+  Matrix *result = postfix_eval(&matrices, &operators, num_matrices, num_operators, postfix_output);
+  print_matrix((*result).data, (*result).rows, (*result).cols);
 
-  // Print postfix order
-  printf("Postfix expression:\n");
-  for (int i = 0; i < postfix_output.output_top; ++i) {
-    if (postfix_output.output_types[i] == 'm') {
-      printf("M%d ", postfix_output.output_values[i]);
-    } else {
-      printf("%c ", postfix_output.output_values[i]);
-    }
-  }
-  printf("\n");
+  // TODO: delete
+  // // Print postfix order
+  // printf("Postfix expression:\n");
+  // for (int i = 0; i < postfix_output.output_top; ++i) {
+  //   if (postfix_output.output_types[i] == 'm') {
+  //     printf("M%d ", postfix_output.output_values[i]);
+  //   } else {
+  //     printf("%c ", postfix_output.output_values[i]);
+  //   }
+  // }
+  // printf("\n");
   
   for (int i = 0; i < num_matrices; ++i){
     free_matrix(matrices[i].data, matrices[i].rows);
@@ -83,6 +94,29 @@ int main(int argc, char *argv[])
   free(output_types);
 
   return OK;
+}
+
+int **allocate_matrix(int rows, int cols)
+{
+  // Allocate memory for matrix
+  int **output = (int**)malloc(rows * sizeof(int*));
+  if (output == NULL){
+    fprintf(stderr, "Memory allocation error!");
+    return NULL;
+  }
+
+  for (int i = 0; i < rows; ++i){
+    // Initialize matrix
+    output[i] = (int*)malloc(cols * sizeof(int));
+    if (output[i] == NULL){
+      fprintf(stderr, "Memory allocation error!");
+      for (int j = 0; j < rows; ++j){
+        free(output[i]);
+      }
+      return NULL;
+    }
+  }
+  return output;
 }
 
 int read_matrices_operators(Matrix **matrices, char **operators, int *num_matrices, int *num_operators)
@@ -97,7 +131,7 @@ int read_matrices_operators(Matrix **matrices, char **operators, int *num_matric
       } else {
         fprintf(stderr, "Error reading matrix!\n");
         return ERROR;
-    }
+      }
     }
       
     Matrix *temp_matrices = realloc(*matrices, (*num_matrices + 1) * sizeof(Matrix));   // TODO: Increasing array size like this is not the best
@@ -153,24 +187,8 @@ int **read_matrix(int *rows, int *cols)
     return NULL;
   }
 
-  // Allocate memory for matrix
-  int **matrix = (int**)malloc(*rows * sizeof(int*));
-  if (matrix == NULL){
-    fprintf(stderr, "Memory allocation error!");
-    return NULL;
-  }
-
-  for (int i = 0; i < *rows; ++i){
-    // Initialize matrix
-    matrix[i] = (int*)malloc(*cols * sizeof(int));
-    if (matrix[i] == NULL){
-      fprintf(stderr, "Memory allocation error!");
-      for (int j = 0; j < *rows; ++j){
-        free(matrix[i]);
-      }
-      return NULL;
-    }
-  }
+  int **matrix = allocate_matrix(*rows, *cols);
+  if (matrix == NULL) return NULL;
 
   // Read elements of the matrix
   for (int i = 0; i < *rows; ++i){
@@ -248,4 +266,173 @@ void postfix(char **operators, int *num_matrices, int *num_operators, PostfixOut
     (*out).output_types[(*out).output_top] = 'o';
     (*out).output_top++;
   }
+}
+
+void sum(Matrix *matrix1, Matrix *matrix2, int **output)
+{
+  for (int i = 0; i < (*matrix1).rows; ++i){
+    for (int j = 0; j < (*matrix1).cols; ++j){
+      output[i][j] = (*matrix1).data[i][j] + (*matrix2).data[i][j];
+    }
+  }
+}
+
+void subtract(Matrix *matrix1, Matrix *matrix2, int **output)
+{
+  for (int i = 0; i < (*matrix1).rows; ++i){
+    for (int j = 0; j < (*matrix1).cols; ++j){
+      output[i][j] = (*matrix1).data[i][j] - (*matrix2).data[i][j];
+    }
+  }
+}
+
+void multiply(Matrix *matrix1, Matrix *matrix2, int **output)
+{
+  for (int i = 0; i < (*matrix1).rows; ++i){
+    for (int j = 0; j < (*matrix2).cols; ++j){
+      int sum = 0;
+      for (int k = 0; k < (*matrix1).cols; ++k){
+        sum += (*matrix1).data[i][k] * (*matrix2).data[k][j];
+      }
+      output[i][j] = sum;
+    }
+  }
+}
+
+int check_dimensions(Matrix *matrix1, Matrix *matrix2, char operator)
+{
+  if (operator == '*'){
+    if ((*matrix1).cols != (*matrix2).rows){
+      fprintf(stderr, "Invalid matrix dimensions!");
+      return 0;
+    }
+  } else{
+    if ((*matrix1).rows != (*matrix2).rows || (*matrix1).cols != (*matrix2).cols){
+      fprintf(stderr, "Invalid matrix dimensions!");
+      return 0;
+    }
+  }
+  return FINE;
+}
+
+int **eval(Matrix *matrix1, Matrix *matrix2, char operator)
+{
+  if (operator == '+'){
+    if (check_dimensions(matrix1, matrix2, operator) == 0){
+      fprintf(stderr, "ERROR: Invalid dimensions!\n");
+      return NULL;
+    }
+
+    int **output = allocate_matrix((*matrix2).rows, (*matrix2).cols);
+    if (output == NULL){
+      fprintf(stderr, "Allocation ERROR!\n");
+      return NULL;
+    }
+    else {
+      sum(matrix1, matrix2, output);
+      return output;
+    }
+  } 
+  
+  else if (operator == '-'){
+    if (check_dimensions(matrix1, matrix2, operator) == 0){
+      fprintf(stderr, "ERROR: Invalid dimensions!\n");
+      return NULL;
+    }
+
+    int **output = allocate_matrix((*matrix2).rows, (*matrix2).cols);
+    if (output == NULL){
+      fprintf(stderr, "Allocation ERROR!\n");
+      return NULL;
+    }
+    else {
+      subtract(matrix1, matrix2, output);
+      // printf("VSYLEWDOK:\n");
+      // print_matrix(output, (*matrix2).rows, (*matrix2).cols);
+      // printf("\n");
+      return output;
+    }
+  } 
+  
+  else if (operator == '*'){
+    if (check_dimensions(matrix1, matrix2, operator) == 0){
+      fprintf(stderr, "ERROR: Invalid dimensions!\n");
+      return NULL;
+    }
+
+    int **output = allocate_matrix((*matrix1).rows, (*matrix2).cols);
+    if (output == NULL){
+      fprintf(stderr, "Allocation ERROR!\n");
+      return NULL;
+    }
+    else {
+      multiply(matrix1, matrix2, output);
+      //print_matrix(output, (*matrix1).rows, (*matrix2).cols);
+      return output;
+    }
+  }
+
+  return NULL;
+}
+
+Matrix *postfix_eval(Matrix **matrices, char **operators, int num_matrices, int num_operators, PostfixOutput postfix) // TODO: Memory clean-up!!
+{
+  // Create a stack to hold pointers to Matrix structures.
+  Matrix **stack = malloc(sizeof(Matrix*) * (num_matrices + num_operators));
+  if (!stack) {
+      fprintf(stderr, "Memory allocation failed for stack\n");
+      return NULL;
+  }
+  int stack_top = 0;
+
+  for (int token = 0; token < postfix.output_top; ++token){
+    if (postfix.output_types[token] == 'm'){
+      int index = postfix.output_values[token];
+      stack[stack_top++] = &((*matrices)[index]);
+      //printf("AHOJkkt %d\n", (*stack)[stack_top].cols);
+    }
+    else if (postfix.output_types[token] == 'o'){
+      if (stack_top < 2){
+        fprintf(stderr, "Insufficient number of matrices!");
+        free(stack);
+        return NULL;
+      }
+      
+      Matrix *right = stack[--stack_top];
+      Matrix *left = stack[--stack_top];
+      char operator = (char)postfix.output_values[token];
+      int **result_data = eval(left, right, operator);
+      if (result_data == NULL){
+        fprintf(stderr, "Calculation did not proceed!\n");
+        free(stack);
+        return NULL;
+      }
+
+      Matrix *result = malloc(sizeof(Matrix));
+      if (!result) {
+          fprintf(stderr, "Memory allocation failed for result matrix\n");
+          free(stack);
+          return NULL;
+      }
+      if (operator == '*') {
+          (*result).rows = (*left).rows;
+          (*result).cols = (*right).cols;
+      } else {
+          (*result).rows = (*left).rows;
+          (*result).cols = (*left).cols;
+      }
+      (*result).data = result_data;
+
+      stack[stack_top++] = result;
+    }
+  }
+  if (stack_top != 1){
+    fprintf(stderr, "Error: Stack did not end with a single result\n");
+    free(stack);
+    return NULL;
+  }
+
+  Matrix *final = stack[0];
+  free(stack);
+  return final;
 }
