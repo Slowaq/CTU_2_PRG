@@ -48,12 +48,6 @@ int main(int argc, char *argv[])
   if (read_matrices_operators(&matrices, &operators, &num_matrices, &num_operators) != 0)
     return ERROR;
 
-  // for (int i = 0; i < num_matrices; ++i){
-  //   print_matrix(matrices[i].data, matrices[i].rows, matrices[i].cols);
-  //   if (i < num_operators) printf("%c", operators[i]);
-  //   putchar('\n');
-  // }
-
   // Allocate memory for output of postfix conversion
   int *output_values = (int*)malloc(sizeof(int) * (num_matrices + num_operators));   // Storing tokens of postfix expression
   char *output_types = (char*)malloc(sizeof(char) * (num_matrices + num_operators)); // 'm' - matrix, 'o' - operator
@@ -69,21 +63,21 @@ int main(int argc, char *argv[])
 
   postfix(&operators, &num_matrices, &num_operators, &postfix_output);
 
-  //eval(&matrices[0], &matrices[1], '*');
   Matrix *result = postfix_eval(&matrices, &operators, num_matrices, num_operators, postfix_output);
-  print_matrix((*result).data, (*result).rows, (*result).cols);
-
-  // TODO: delete
-  // // Print postfix order
-  // printf("Postfix expression:\n");
-  // for (int i = 0; i < postfix_output.output_top; ++i) {
-  //   if (postfix_output.output_types[i] == 'm') {
-  //     printf("M%d ", postfix_output.output_values[i]);
-  //   } else {
-  //     printf("%c ", postfix_output.output_values[i]);
-  //   }
-  // }
-  // printf("\n");
+  if (result == NULL) {
+    fprintf(stderr, "Error: Chybny vstup!\n");
+    for (int i = 0; i < num_matrices; ++i){
+      free_matrix(matrices[i].data, matrices[i].rows);
+    }
+    free(matrices);
+    free(operators);
+    free(output_values);
+    free(output_types);
+    return ERROR;
+  } else {
+    printf("%d %d\n", (*result).rows, (*result).cols);
+    print_matrix((*result).data, (*result).rows, (*result).cols);
+  }
   
   for (int i = 0; i < num_matrices; ++i){
     free_matrix(matrices[i].data, matrices[i].rows);
@@ -129,7 +123,7 @@ int read_matrices_operators(Matrix **matrices, char **operators, int *num_matric
       if (feof(stdin)) {
         break;
       } else {
-        fprintf(stderr, "Error reading matrix!\n");
+        //fprintf(stderr, "Error reading matrix!\n");
         return ERROR;
       }
     }
@@ -303,12 +297,12 @@ int check_dimensions(Matrix *matrix1, Matrix *matrix2, char operator)
 {
   if (operator == '*'){
     if ((*matrix1).cols != (*matrix2).rows){
-      fprintf(stderr, "Invalid matrix dimensions!");
+      //fprintf(stderr, "Invalid matrix dimensions!");
       return 0;
     }
   } else{
     if ((*matrix1).rows != (*matrix2).rows || (*matrix1).cols != (*matrix2).cols){
-      fprintf(stderr, "Invalid matrix dimensions!");
+      //fprintf(stderr, "Invalid matrix dimensions!");
       return 0;
     }
   }
@@ -319,7 +313,7 @@ int **eval(Matrix *matrix1, Matrix *matrix2, char operator)
 {
   if (operator == '+'){
     if (check_dimensions(matrix1, matrix2, operator) == 0){
-      fprintf(stderr, "ERROR: Invalid dimensions!\n");
+      //fprintf(stderr, "ERROR: Invalid dimensions!\n");
       return NULL;
     }
 
@@ -336,7 +330,7 @@ int **eval(Matrix *matrix1, Matrix *matrix2, char operator)
   
   else if (operator == '-'){
     if (check_dimensions(matrix1, matrix2, operator) == 0){
-      fprintf(stderr, "ERROR: Invalid dimensions!\n");
+      //fprintf(stderr, "ERROR: Invalid dimensions!\n");
       return NULL;
     }
 
@@ -347,16 +341,13 @@ int **eval(Matrix *matrix1, Matrix *matrix2, char operator)
     }
     else {
       subtract(matrix1, matrix2, output);
-      // printf("VSYLEWDOK:\n");
-      // print_matrix(output, (*matrix2).rows, (*matrix2).cols);
-      // printf("\n");
       return output;
     }
   } 
   
   else if (operator == '*'){
     if (check_dimensions(matrix1, matrix2, operator) == 0){
-      fprintf(stderr, "ERROR: Invalid dimensions!\n");
+      //fprintf(stderr, "ERROR: Invalid dimensions!\n");
       return NULL;
     }
 
@@ -367,7 +358,6 @@ int **eval(Matrix *matrix1, Matrix *matrix2, char operator)
     }
     else {
       multiply(matrix1, matrix2, output);
-      //print_matrix(output, (*matrix1).rows, (*matrix2).cols);
       return output;
     }
   }
@@ -389,11 +379,10 @@ Matrix *postfix_eval(Matrix **matrices, char **operators, int num_matrices, int 
     if (postfix.output_types[token] == 'm'){
       int index = postfix.output_values[token];
       stack[stack_top++] = &((*matrices)[index]);
-      //printf("AHOJkkt %d\n", (*stack)[stack_top].cols);
     }
     else if (postfix.output_types[token] == 'o'){
       if (stack_top < 2){
-        fprintf(stderr, "Insufficient number of matrices!");
+        //fprintf(stderr, "Insufficient number of matrices!");
         free(stack);
         return NULL;
       }
@@ -403,7 +392,7 @@ Matrix *postfix_eval(Matrix **matrices, char **operators, int num_matrices, int 
       char operator = (char)postfix.output_values[token];
       int **result_data = eval(left, right, operator);
       if (result_data == NULL){
-        fprintf(stderr, "Calculation did not proceed!\n");
+        //fprintf(stderr, "Calculation did not proceed!\n");
         free(stack);
         return NULL;
       }
@@ -427,7 +416,7 @@ Matrix *postfix_eval(Matrix **matrices, char **operators, int num_matrices, int 
     }
   }
   if (stack_top != 1){
-    fprintf(stderr, "Error: Stack did not end with a single result\n");
+    //fprintf(stderr, "Error: Stack did not end with a single result\n");
     free(stack);
     return NULL;
   }
