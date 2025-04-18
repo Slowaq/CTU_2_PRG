@@ -5,7 +5,7 @@
 
 enum{
   OK = 0,
-  FINE = 1,
+  FINE = 1,  // Used in functions so that program doesnt check for 0 on failiture
   ERROR = 100
 };
 
@@ -23,7 +23,8 @@ typedef struct
   int output_top;
 } PostfixOutput;
 
-
+int **safe_alloc(int r, int c);
+void cleanup_and_exit(Matrix *mats, int nm, char *ops, int *vals, char *types);
 int **allocate_matrix(int rows, int cols);
 int **read_matrix(int *row, int *col);
 int read_matrices_operators(Matrix **matrices, char **operators, int *num_matrices, int *num_operators);
@@ -52,11 +53,9 @@ int main(int argc, char *argv[])
   int *output_values = (int*)malloc(sizeof(int) * (num_matrices + num_operators));   // Storing tokens of postfix expression
   char *output_types = (char*)malloc(sizeof(char) * (num_matrices + num_operators)); // 'm' - matrix, 'o' - operator
 
-  if (!output_values || !output_types){
-    fprintf(stderr, "Memory allocation failed");
-    free(output_values);
-    free(output_types);
-    exit(ERROR);
+  if (!output_values || !output_types) {
+    fprintf(stderr, "Memory allocation failed\n");
+    cleanup_and_exit(matrices, num_matrices, operators, output_values, output_types);
   }
 
   PostfixOutput postfix_output = {.output_values = output_values, .output_types = output_types, .output_top = 0};
@@ -66,19 +65,12 @@ int main(int argc, char *argv[])
   Matrix *result = postfix_eval(&matrices, &operators, num_matrices, num_operators, postfix_output);
   if (result == NULL) {
     fprintf(stderr, "Error: Chybny vstup!\n");
-    for (int i = 0; i < num_matrices; ++i){
-      free_matrix(matrices[i].data, matrices[i].rows);
-    }
-    free(matrices);
-    free(operators);
-    free(output_values);
-    free(output_types);
-    return ERROR;
+    cleanup_and_exit(matrices, num_matrices, operators, output_values, output_types);
   } else {
     printf("%d %d\n", (*result).rows, (*result).cols);
     print_matrix((*result).data, (*result).rows, (*result).cols);
   }
-  
+    
   for (int i = 0; i < num_matrices; ++i){
     free_matrix(matrices[i].data, matrices[i].rows);
   }
@@ -88,6 +80,23 @@ int main(int argc, char *argv[])
   free(output_types);
 
   return OK;
+}
+
+int **safe_alloc(int r, int c) 
+{
+  int **m = allocate_matrix(r, c);
+  if (!m) { fprintf(stderr, "Alloc error\n"); return NULL; }
+  return m;
+}
+
+void cleanup_and_exit(Matrix *mats, int nm, char *ops, int *vals, char *types) 
+{
+  for (int i = 0; i < nm; i++) free_matrix(mats[i].data, mats[i].rows);
+  free(mats);
+  free(ops);
+  free(vals);
+  free(types);
+  exit(ERROR);
 }
 
 int **allocate_matrix(int rows, int cols)
@@ -107,6 +116,7 @@ int **allocate_matrix(int rows, int cols)
       for (int j = 0; j < rows; ++j){
         free(output[i]);
       }
+      free(output);
       return NULL;
     }
   }
@@ -130,13 +140,8 @@ int read_matrices_operators(Matrix **matrices, char **operators, int *num_matric
       
     Matrix *temp_matrices = realloc(*matrices, (*num_matrices + 1) * sizeof(Matrix));   // TODO: Increasing array size like this is not the best
     if (temp_matrices == NULL){
-      for (int i = 0; i < *num_matrices; ++i){
-        free_matrix((*matrices)[i].data, (*matrices)[i].rows);
-      }
-      free(matrices);
-      free(operators);
-      fprintf(stderr, "Memory allocation failed");
-      return ERROR;
+      fprintf(stderr, "Memory allocation failed\n");
+      cleanup_and_exit(*matrices, *num_matrices, *operators, NULL, NULL);
     }
     
     *matrices = temp_matrices;
@@ -151,13 +156,10 @@ int read_matrices_operators(Matrix **matrices, char **operators, int *num_matric
 
     char *temp_operators = realloc(*operators, (*num_operators + 1) * sizeof(char));
     if (temp_operators == NULL){
-      for (int i = 0; i < *num_matrices; ++i){
-        free_matrix((*matrices)[i].data, (*matrices)[i].rows);
-      }
-      free(matrices);
-      free(operators);
       fprintf(stderr, "Memory allocation failed");
+      cleanup_and_exit(*matrices, *num_matrices, *operators, NULL, NULL);
       return ERROR;
+
     } 
 
     *operators = temp_operators;
@@ -312,51 +314,33 @@ int check_dimensions(Matrix *matrix1, Matrix *matrix2, char operator)
 int **eval(Matrix *matrix1, Matrix *matrix2, char operator)
 {
   if (operator == '+'){
-    if (check_dimensions(matrix1, matrix2, operator) == 0){
-      //fprintf(stderr, "ERROR: Invalid dimensions!\n");
-      return NULL;
-    }
+    if (check_dimensions(matrix1, matrix2, operator) == 0) return NULL;
 
-    int **output = allocate_matrix((*matrix2).rows, (*matrix2).cols);
-    if (output == NULL){
-      fprintf(stderr, "Allocation ERROR!\n");
-      return NULL;
-    }
-    else {
+    int **output = safe_alloc((*matrix1).rows, (*matrix2).cols);
+    if (output)
+    {
       sum(matrix1, matrix2, output);
       return output;
     }
   } 
   
   else if (operator == '-'){
-    if (check_dimensions(matrix1, matrix2, operator) == 0){
-      //fprintf(stderr, "ERROR: Invalid dimensions!\n");
-      return NULL;
-    }
+    if (check_dimensions(matrix1, matrix2, operator) == 0) return NULL;
 
-    int **output = allocate_matrix((*matrix2).rows, (*matrix2).cols);
-    if (output == NULL){
-      fprintf(stderr, "Allocation ERROR!\n");
-      return NULL;
-    }
-    else {
+    int **output = safe_alloc((*matrix1).rows, (*matrix2).cols);
+    if (output)
+    {
       subtract(matrix1, matrix2, output);
       return output;
     }
   } 
   
   else if (operator == '*'){
-    if (check_dimensions(matrix1, matrix2, operator) == 0){
-      //fprintf(stderr, "ERROR: Invalid dimensions!\n");
-      return NULL;
-    }
+    if (check_dimensions(matrix1, matrix2, operator) == 0) return NULL;
 
-    int **output = allocate_matrix((*matrix1).rows, (*matrix2).cols);
-    if (output == NULL){
-      fprintf(stderr, "Allocation ERROR!\n");
-      return NULL;
-    }
-    else {
+    int **output = safe_alloc((*matrix1).rows, (*matrix2).cols);
+    if (output)
+    {
       multiply(matrix1, matrix2, output);
       return output;
     }
