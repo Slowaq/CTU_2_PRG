@@ -1,6 +1,9 @@
 #ifndef __LINKED_LIST_H__
 #define __LINKED_LIST_H__
 
+
+_Bool ll_is_empty(void);
+
 /*
  * Push the entry value to the queue. The value of the entry must be >= 0.
  * return: true on success and false otherwise.
