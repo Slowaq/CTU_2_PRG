@@ -5,11 +5,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-enum{
-   ERROR = 100,
-   MAL_ERROR = 101,
-};
-
 /* Queue structure which holds all necessary data */
 typedef struct {
    void **array;      // Pointers to data

@@ -1,19 +1,24 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define TU_SOM printf("%s", "TU SOM\n");
 
 enum{
   OK = 0,
   FINE = 1,  // Used in functions so that program doesnt check for 0 on failiture
-  ERROR = 100
+  ERROR = 100,
+  LENGHT = 1000024,
+  LETTERS_IN_ALPHABET = 26
 };
 
 typedef struct
 {
+  char name;
   int **data;
-  int rows;
-  int cols;
+  size_t rows;
+  size_t cols;
 } Matrix;
 
 typedef struct
@@ -25,8 +30,11 @@ typedef struct
 
 int **safe_alloc(int r, int c);
 void cleanup_and_exit(Matrix *mats, int nm, char *ops, int *vals, char *types);
-int **allocate_matrix(int rows, int cols);
-int **read_matrix(int *row, int *col);
+int **allocate_matrix(size_t rows, size_t cols);
+int **read_matrix(size_t *row, size_t *col);
+int **read_matrix_2(char *line, Matrix *matrix);
+int read_line_matrices(Matrix **matrices, char **operators, int *num_matrices, int *num_operators, Matrix **sorted_matrices);
+int read_operation(char *line, Matrix **matrices, Matrix **sorted_matrices, char **operators, int *num_matrices, int *num_operators);
 int read_matrices_operators(Matrix **matrices, char **operators, int *num_matrices, int *num_operators);
 void print_matrix(int **matrix, int rows, int cols);
 void free_matrix(int **matrix, int rows);
@@ -41,13 +49,17 @@ Matrix *postfix_eval(Matrix **matrices, char **operators, int num_matrices, int 
 
 int main(int argc, char *argv[])
 {
-  Matrix *matrices = NULL;
-  char *operators = NULL;
+  Matrix *matrices = (Matrix*)malloc(sizeof(Matrix) * LETTERS_IN_ALPHABET);
+  char *operators = (char*)malloc(sizeof(char) * LENGHT + 1); // TODO: memory handling
   int num_matrices = 0;
   int num_operators = 0;
 
-  if (read_matrices_operators(&matrices, &operators, &num_matrices, &num_operators) != 0)
-    return ERROR;
+  Matrix **sorted_matrices = malloc(sizeof(Matrix *) * LENGHT); // TODO: malloc handling
+
+  read_line_matrices(&matrices, &operators, &num_matrices, &num_operators, sorted_matrices);
+
+  // if (read_matrices_operators(&matrices, &operators, &num_matrices, &num_operators) != 0)
+  //   return ERROR;
 
   // Allocate memory for output of postfix conversion
   int *output_values = (int*)malloc(sizeof(int) * (num_matrices + num_operators));   // Storing tokens of postfix expression
@@ -62,24 +74,59 @@ int main(int argc, char *argv[])
 
   postfix(&operators, &num_matrices, &num_operators, &postfix_output);
 
-  Matrix *result = postfix_eval(&matrices, &operators, num_matrices, num_operators, postfix_output);
+  Matrix *result = postfix_eval(sorted_matrices, &operators, num_matrices, num_operators, postfix_output);
   if (result == NULL) {
     fprintf(stderr, "Error: Chybny vstup!\n");
     cleanup_and_exit(matrices, num_matrices, operators, output_values, output_types);
   } else {
-    printf("%d %d\n", (*result).rows, (*result).cols);
-    print_matrix((*result).data, (*result).rows, (*result).cols);
+    // printf("%d %d\n", (*result).rows, (*result).cols);
+    // print_matrix((*result).data, (*result).rows, (*result).cols);
+    putchar('[');
+    for (int i = 0; i < (*result).rows; ++i){
+      for (int j = 0; j < (*result).cols; ++j){
+        printf("%d", (*result).data[i][j]);
+        if (j != ((*result).cols) - 1){
+          putchar(' ');
+        }
+      }
+      if (i != ((*result).rows) - 1){
+        putchar(';');
+        putchar(' ');
+      }
+    }
+    putchar(']');
+    putchar('\n');
   }
     
-  for (int i = 0; i < num_matrices; ++i){
-    free_matrix(matrices[i].data, matrices[i].rows);
-  }
+  // for (int i = 0; i < num_matrices; ++i){
+  //   free_matrix(matrices[i].data, matrices[i].rows);
+  // }
   free(matrices);
   free(operators);
   free(output_values);
   free(output_types);
 
   return OK;
+}
+
+int read_line_matrices(Matrix **matrices, char **operators, int *num_matrices, int *num_operators, Matrix **sorted_matrices)
+{
+  char line[LENGHT];
+  int pos = 0;
+  while (fgets(line, LENGHT, stdin)){
+    if (strcmp(line, "\n") == 0) break;
+    read_matrix_2(line, &((*matrices)[pos]));
+    // printf("%c=\n", (*matrices)[pos].name);
+    // print_matrix((*matrices)[pos].data, (*matrices)[pos].rows, (*matrices)[pos].cols);
+    // putchar('\n');
+    pos++;
+    (*num_matrices)++;
+  }
+
+
+  read_operation(fgets(line, sizeof line, stdin), matrices, sorted_matrices, operators, num_matrices, num_operators);
+
+  return 0;
 }
 
 int **safe_alloc(int r, int c) 
@@ -99,7 +146,7 @@ void cleanup_and_exit(Matrix *mats, int nm, char *ops, int *vals, char *types)
   exit(ERROR);
 }
 
-int **allocate_matrix(int rows, int cols)
+int **allocate_matrix(size_t rows, size_t cols)
 {
   // Allocate memory for matrix
   int **output = (int**)malloc(rows * sizeof(int*));
@@ -114,7 +161,7 @@ int **allocate_matrix(int rows, int cols)
     if (output[i] == NULL){
       fprintf(stderr, "Memory allocation error!");
       for (int j = 0; j < rows; ++j){
-        free(output[j]);
+        free(output[i]);
       }
       free(output);
       return NULL;
@@ -170,9 +217,84 @@ int read_matrices_operators(Matrix **matrices, char **operators, int *num_matric
   return OK;
 }
 
-int **read_matrix(int *rows, int *cols)
+int **read_matrix_2(char *line, Matrix *matrix){
+  matrix->name = line[0];
+
+  char *body = strchr(line, '[') + 1;
+  if (!body) return NULL;
+  
+  char *end = strchr(body, ']');
+  if (!end) return NULL;
+  *end = '\0';
+
+  // Get dimensions of matrix
+  int dim_row = 0;
+  int dim_col = 0;
+  for (int i = 0; i < strlen(line); ++i){
+    if (dim_row == 0){
+      if (line[i] == ' ') dim_col++;
+    } if (line[i] == ';') dim_row++;
+  }
+  dim_row++;
+  dim_col++;
+
+  int **data = allocate_matrix(dim_row,dim_col);
+  if (!data) return NULL;
+
+  int rows = 0;
+  char *copy1, *copy2;
+  char *split_body = strtok_r(body, ";", &copy1);
+  while (split_body != NULL){
+    int columns = 0;
+    char *token = strtok_r(split_body, " ", &copy2);
+    while (token){
+      if (sscanf(token, "%d", &data[rows][columns]) != 1){
+        free_matrix(data, rows + 1);
+        return NULL;
+      }
+      columns++;
+      token = strtok_r(NULL, " ", &copy2);
+    }
+    rows++;
+    matrix->cols = columns;
+
+    split_body = strtok_r(NULL, ";", &copy1);
+  }
+  matrix->data = data;
+  matrix->rows = rows;
+
+  return data;  // TODO: change to void
+}
+
+int read_operation(char *line, Matrix **matrices, Matrix **sorted_matrices, char **operators, int *num_matrices, int *num_operators)
 {
-  int ret = scanf("%d %d", rows, cols);
+  // char line[100];
+  // fgets(line, sizeof(line) / sizeof(char), stdin);
+  size_t len = strlen(line);
+  int matrix_counter = 0;
+  for (int i = 0; i < len; ++i){
+    if (i % 2 == 0){
+      for (int j = 0; j < *num_matrices; ++j){
+        if ((*matrices)[j].name == line[i]){
+          (sorted_matrices)[matrix_counter++] = &(*matrices)[j];
+        }
+      } 
+    } if (line[i] == '+' || line[i] == '-' || line[i] == '*'){
+      (*operators)[*num_operators] = line[i];
+      (*num_operators)++;
+    }
+  }
+  (*operators)[*num_operators] = '\0';
+  
+
+  *num_matrices = matrix_counter;
+
+  return 0;
+}
+
+int **read_matrix(size_t *rows, size_t *cols)
+{
+  int ret = scanf("%zd %zd", rows, cols);
 
   if (ret == EOF || ret == 0) {
     // End of input reached
@@ -359,10 +481,19 @@ Matrix *postfix_eval(Matrix **matrices, char **operators, int num_matrices, int 
   }
   int stack_top = 0;
 
+
+  // printf("matrices: ");
+  // for (int k = 0; k < num_matrices; k++) {
+  //     putchar((*matrices)[k].name);
+  //     if (k+1 < num_matrices) putchar(',');
+  // }
+  // putchar('\n');
+
+
   for (int token = 0; token < postfix.output_top; ++token){
     if (postfix.output_types[token] == 'm'){
       int index = postfix.output_values[token];
-      stack[stack_top++] = &((*matrices)[index]);
+      stack[stack_top++] = matrices[index];    
     }
     else if (postfix.output_types[token] == 'o'){
       if (stack_top < 2){

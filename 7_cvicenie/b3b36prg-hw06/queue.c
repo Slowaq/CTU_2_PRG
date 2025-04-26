@@ -1,32 +1,25 @@
-// #ifndef __QUEUE_H__
-// #define __QUEUE_H__
-// #endif /* __QUEUE_H__ */
-
 #include "queue.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
-
-// int main(int argc, char *argv[])
-// {
-//    return 0;
-// }
+#define QUEUE_GROWTH_FACTOR 2
+#define QUEUE_SHRINK_FACTOR 3
 
 /* creates a new queue with a given size */
 queue_t* create_queue(int capacity)
 {
     if (capacity <= 0) return NULL;
     queue_t *temp = malloc(sizeof(queue_t));
-    if (temp == NULL) {
+    if (!temp) return NULL;
+
+    void **temp_arr = malloc(capacity * sizeof(void *));
+    if (!temp_arr) 
+    {
         free(temp);
         return NULL;
     }
-    void **temp_arr = malloc(capacity * sizeof(void *));
-        if (temp_arr == NULL){
-            free(temp_arr);
-        return NULL;
-        }
+
     queue_t *queue = temp;
 
     queue->array = temp_arr;
@@ -41,7 +34,8 @@ queue_t* create_queue(int capacity)
 /* deletes the queue and all allocated memory */
 void delete_queue(queue_t *queue)
 {
-   if (queue){
+   if (queue)
+   {
         free(queue->array);
         free(queue);
    }
@@ -53,8 +47,12 @@ void delete_queue(queue_t *queue)
  */
 bool push_to_queue(queue_t *queue, void *data)
 {
-    if (queue->occupancy == (queue->capacity) ){
-        resize_queue(queue, queue->capacity * 2);
+    if (queue->occupancy == (queue->capacity) )
+    {
+        if (!resize_queue(queue, queue->capacity * QUEUE_GROWTH_FACTOR))
+        {
+            return false;
+        }
     }
 
     queue->array[queue->tail] = data;
@@ -72,8 +70,13 @@ void* pop_from_queue(queue_t *queue)
 {
     if (queue->occupancy == 0) return NULL;
 
-    if (queue->occupancy * 3<= queue->capacity){
-        resize_queue(queue, queue->capacity / 3);
+    if (queue->occupancy * 3 <= queue->capacity)
+    {
+        // Make sure queue won't have lenght 0
+        int resize_factor = 1;
+        if (queue->capacity / QUEUE_SHRINK_FACTOR > 1) resize_factor = queue->capacity / QUEUE_SHRINK_FACTOR;
+        if (!resize_queue(queue, resize_factor)) return NULL;
+        
     }
 
     void *first = queue->array[queue->head];
@@ -107,11 +110,10 @@ bool resize_queue(queue_t *queue, int new_capacity)
     if (!queue) return false;
 
     void **temp = malloc(new_capacity * sizeof(void *));
-    if (temp == NULL){
-        free(temp);
-        return false;
-    }
-    for (int i = 0; i < queue->occupancy; ++i){
+    if (!temp) return false;
+
+    for (int i = 0; i < queue->occupancy; ++i)
+    {
         temp[i] = queue->array[(queue->head + i) % queue->capacity];
     }
     free(queue->array);
@@ -122,4 +124,3 @@ bool resize_queue(queue_t *queue, int new_capacity)
 
     return true;
     }
-
