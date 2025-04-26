@@ -1,6 +1,9 @@
 #ifndef __QUEUE_H__
 #define __QUEUE_H__
  
+
+_Bool ll_is_empty(void *queue);
+
 /* 
  * Allocate a new queue structure or return NULL on an error.
  * Particular type is implementation dependent
