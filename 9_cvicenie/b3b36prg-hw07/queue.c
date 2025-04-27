@@ -105,16 +105,14 @@ void* pop(void *queue)
 _Bool insert(void *queue, void *entry)
 {
     llLinkedList *q = (llLinkedList*)queue;
-    if (entry == NULL) return false;
-    if (q->compare == NULL) return false;
+    if (!entry || !q->compare) return false;
 
     llNode *new_node = (llNode*)malloc(sizeof(llNode));
     if (new_node == NULL) return false;
-
     new_node->data = entry;
     new_node->next = NULL;
 
-    if (ll_is_empty(queue) || 0 < q->compare(entry, q->first->data)) 
+    if (ll_is_empty(queue) || 0 <= q->compare(entry, q->first->data)) 
     {
         new_node->next = q->first;
         q->first = new_node;
@@ -124,15 +122,15 @@ _Bool insert(void *queue, void *entry)
 
     llNode *prev = q->first;
     llNode *n = q->first->next;
-    while (n != NULL && 0 < q->compare(n->data, entry)) 
+    while (n != NULL && 0 < q->compare(n->data, entry))
     {
         prev = n;
         n = n->next;
+        //break;
     }
 
     prev->next = new_node;
     new_node->next = n;
-
     if (n == NULL) q->last = new_node;
     
     return true;
