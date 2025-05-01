@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+// Jhako
+
 void *main_thread(void *d){
 
     my_assert(d != NULL, __func__, __LINE__, __FILE__);
