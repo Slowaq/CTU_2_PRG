@@ -13,7 +13,7 @@
 #define  IO_READ_TIMEOUT_MS 100
 #endif
 
-// sh create_pipes.sh na kompilaci, pak spusteni
+// Jhako sh create_pipes.sh na kompilaci, pak spusteni
 
 void *read_pipe_thread(void *);
 
