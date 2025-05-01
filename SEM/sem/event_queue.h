@@ -51,9 +51,10 @@ event queue_pop(void);
 
 void queue_push(event ev);
 
-bool is_quit();
+bool is_quit(void);
 
-void set_quit();
+void set_quit(void);
 #endif
 
 /* end of event_queue.h */
+

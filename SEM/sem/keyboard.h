@@ -7,3 +7,4 @@ void debug(const char *str);
 void error(const char *str);
 
 #endif
+
