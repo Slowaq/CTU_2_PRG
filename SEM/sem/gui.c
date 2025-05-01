@@ -30,3 +30,4 @@ void gui_refresh(void){
         xwin_redraw(gui.w, gui.h, gui.img);
     }
 }
+

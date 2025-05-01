@@ -59,7 +59,7 @@ void queue_push(event ev){
     pthread_mutex_unlock(&(q.mtx));
 }
 
-bool is_quit(){
+bool is_quit(void){
     bool quit;
     pthread_mutex_lock(&(q.mtx));
     quit = q.quit;
@@ -67,8 +67,9 @@ bool is_quit(){
     return quit;
 }
 
-void set_quit(){ 
+void set_quit(void){ 
     pthread_mutex_lock(&(q.mtx));
     q.quit = true;
     pthread_mutex_unlock(&(q.mtx));
 }
+
