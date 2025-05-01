@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "stdlib.h": "c",
+        "utils.h": "c",
+        "termios.h": "c",
+        "unistd.h": "c",
+        "stdio.h": "c"
+    }
+}

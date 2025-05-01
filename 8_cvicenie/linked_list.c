@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-enum{
+enum {
     Ok = 0,
-    ERROR_llPush = 100
+    Error_llPush = 100
 };
 
 struct llNode_ {
-    int data;
+    int             data;
     struct llNode_ *next;
 };
 typedef struct llNode_ llNode;
@@ -21,32 +21,33 @@ typedef struct llLinkedList_ llLinkedList;
 #define llEmpty {NULL, NULL}
 
 bool ll_is_empty(llLinkedList *self);
-bool ll_push(llLinkedList *list, int value);
+bool ll_push(llLinkedList *self, int value);
 bool ll_pop(llLinkedList *self, int *value);
 void ll_print(llLinkedList *self);
 void ll_free(llLinkedList *self);
 
-int main(void)
+int main()
 {
     int status = Ok;
 
     llLinkedList list = llEmpty;
 
-    while (1){
+    while (1) {
         int i;
-        if (scanf("%d", &i) != 1) break;
+        if(scanf("%d", &i) != 1) break;
 
-        if (!ll_push(&list, i)){
-            status =  ERROR_llPush;
+        if(!ll_push(&list, i)) {
+            status = Error_llPush;
             goto main_return;
         }
     }
 
     int i;
-    while (ll_pop(&list, &i)){
+    while (ll_pop(&list, &i)) {
         printf("%d\n", i);
     }
-    //ll_print(&list);
+    
+    // ll_print(&list);
 
     main_return:
     ll_free(&list);
@@ -61,43 +62,43 @@ bool ll_is_empty(llLinkedList *self)
 bool ll_push(llLinkedList *self, int value)
 {
     llNode *new_node = (llNode*)malloc(sizeof(llNode));
-    if (new_node == NULL) return false;
-    
-    new_node->data = value;
+    if(new_node == NULL) return false;
+
+    new_node->data = value;  
     new_node->next = NULL;
-    
-    if (ll_is_empty(self)){
-        self->first = self->last = new_node;
-    } else{
-        self->last->next = new_node;
+
+    if(ll_is_empty(self)) {
+        self->first = self->last = new_node; 
+    } else {
+        self->last->next = new_node;  
         self->last = new_node;
     }
-    
+
     return true;
 }
 
 bool ll_pop(llLinkedList *self, int *value)
 {
-    if (ll_is_empty(self)) return false;
+    if(ll_is_empty(self)) return false;
 
     *value = self->first->data;
 
     llNode *tmp = self->first;
-    if (self->first->next == NULL){
+    if(self->first == self->last) {
         self->first = self->last = NULL;
-    } else{
+    } else {
         self->first = self->first->next;
     }
     free(tmp);
 
     return true;
-} 
+}
 
 void ll_print(llLinkedList *self)
 {
-    for (llNode *n = self->first; n != NULL; n = n->next){
+    for(llNode *n = self->first; n != NULL; n = n->next) {
         printf("%d", n->data);
-        if (n->next != NULL){
+        if(n->next != NULL) {
             printf(" -> ");
         }
     }
@@ -106,7 +107,7 @@ void ll_print(llLinkedList *self)
 
 void ll_free(llLinkedList *self)
 {
-    for (llNode *n = self->first; n != NULL;){
+    for(llNode *n = self->first; n != NULL;) {
         llNode *tmp = n;
         n = n->next;
         free(tmp);
