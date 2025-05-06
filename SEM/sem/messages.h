@@ -9,6 +9,8 @@
 #define IO_SEND_ERROR 107
 
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 // Definition of the communication messages
@@ -89,7 +91,7 @@ bool parse_message_buf(const uint8_t *buf, int size, message *msg);
  * @param fd_out File descriptor of the output pipe.
  * @param msg    Pointer to the message to send.
  */
-void send_message(int fd_out, message *msg);
+void send_message(int fd_out, const message *msg);
 
 
 #endif

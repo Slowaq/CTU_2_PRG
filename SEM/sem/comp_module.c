@@ -56,6 +56,7 @@ int main(int argc, char *argv[])
     // The main loop for reading messages
     uint8_t msg_buf[256];
     int msg_len;
+    bool quit = false;
     do
     {
         if (readn(pipe_in, msg_buf, 1) == -1) break; // TODO: not handling error correctly
@@ -72,22 +73,22 @@ int main(int argc, char *argv[])
 
         switch (msg.type)
         {
-            case MSG_GET_VERSION:
-                 message out = { .type = MSG_VERSION,
+            case MSG_GET_VERSION: {
+                message out = { .type = MSG_VERSION,
                                 .data.version = {1,0,0} }; // TODO: add other, i think it should be just return(msg.data.version)
-                send_message(pipe_out, out);
+                send_message(pipe_out, &out);
                 break;
+            }
             case MSG_SET_COMPUTE:
-                comp.cid      = msg.data.set_compute.cid; 
                 comp.c_re     = msg.data.set_compute.c_re;
                 comp.c_im     = msg.data.set_compute.c_im;
                 comp.d_re     = msg.data.set_compute.d_re;
                 comp.d_im     = msg.data.set_compute.d_im;
                 comp.max_iter = msg.data.set_compute.n;
-                send_message(pipe_out, ok);
+                send_message(pipe_out, &ok);
                 break;
             case MSG_COMPUTE:
-                send_message(pipe_out, ok);
+                send_message(pipe_out, &ok);
                 compute_and_stream( pipe_out, 
                                     comp.cid, 
                                     comp.chunk_re, 
@@ -98,16 +99,18 @@ int main(int argc, char *argv[])
                 break;
             case MSG_ABORT:
                 msg.type = MSG_ABORT;
-                send_message(pipe_out, ok);
+                send_message(pipe_out, &ok);
                 break;
-            default:
-                send_message(pipe_out, MSG_ERROR);
+            default: {
+                message err = { .type = MSG_ERROR };
+                send_message(pipe_out, &err);
                 break;
+            }
         }// switch end
 
         quit = is_quit();
     } while (!quit);
-    
+    return status;
 }
 
 void compute_and_stream(
@@ -123,7 +126,8 @@ void compute_and_stream(
         for (uint8_t y = 0; y < n_im; ++y) {
             if (comp.abort)
             {
-                send_message(pipe_out, MSG_ABORT);
+                message abort = { .type = MSG_ABORT };
+                send_message(fd_out, &abort);
                 comp.abort = false;
                 return;
             }
@@ -149,13 +153,11 @@ void compute_and_stream(
                           .data.compute_data.i_im = y,
                           .data.compute_data.iter = iter
                         };
-            send_message(fd_out, m);
+            send_message(fd_out, &m);
 
         }
     }
     // Send termination message to signal chunk being complete
     message term = { .type = MSG_DONE };
-    send_message(fd_out, term);
-
-    return status;
+    send_message(fd_out, &term);
 }

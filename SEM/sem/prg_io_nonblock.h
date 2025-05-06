@@ -59,6 +59,17 @@ int io_putc(int fd, char c);
 int io_getc(int fd);
 
 /// ----------------------------------------------------------------------------
+/// @brief send
+
+/// @param fd 
+/// @param buf 
+/// @param len 
+
+/// @return -1 of failiture to write to fd, len else
+/// ----------------------------------------------------------------------------
+int send(int fd, void *buf, size_t len);
+
+/// ----------------------------------------------------------------------------
 /// @brief readn
 
 /// @param fd 

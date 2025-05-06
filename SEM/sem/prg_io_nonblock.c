@@ -116,4 +116,17 @@ int io_getc_timeout(int fd, int timeout_ms, unsigned char *c)
    return r;
 }
 
+/// ----------------------------------------------------------------------------
+int send(int fd, void *buf, size_t len)
+{
+   /*
+      Sends len number of bytes from buffer buf to file descriptor fd
+   */
+   for (int i = 0; i < len; ++i)
+   {
+      if (io_putc(fd, &buf[i]) != 1) return -1;
+   }
+   return len;
+}
+
 /* end of prg_io_nonblock.c */

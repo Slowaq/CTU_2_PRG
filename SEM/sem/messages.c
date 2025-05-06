@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "messages.h"
+#include "prg_io_nonblock.h"
 
 // - function  ----------------------------------------------------------------
 bool get_message_size(uint8_t msg_type, int *len)
@@ -171,7 +172,7 @@ bool parse_message_buf(const uint8_t *buf, int size, message *msg)
 }
 
 // - function  ----------------------------------------------------------------
-void send_message(int fd, message *msg)
+void send_message(int fd, const message *msg)
 {
    uint8_t buf[256];
    int msg_len;
@@ -186,8 +187,8 @@ void send_message(int fd, message *msg)
    // Send buffer
    if (send(fd, buf, msg_len) != msg_len)
    {
-      fprintf(stderr, "ERROR: send() wrote %d of %d bytes for type %d\n",
-              written, msg_len, msg->type);
+      fprintf(stderr, "ERROR: send() encountered error at writing bite %d for type %d\n",
+              msg_len, msg->type);
       exit(IO_SEND_ERROR);
    }
 }
