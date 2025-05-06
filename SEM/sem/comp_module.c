@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     my_assert(pipe_in != -1 && pipe_out != -1, __func__, __LINE__, __FILE__);
 
     // Initialize msg and send MSG_STARTUP
-    const message msg = { .type = MSG_STARTUP, .data.startup.message =  {'b', 'a', 'l', 'u', 'c', 'w', 'i', 'l'}};
+    message msg = { .type = MSG_STARTUP, .data.startup.message =  {'b', 'a', 'l', 'u', 'c', 'w', 'i', 'l'}};
     send_message(pipe_out, &msg);
 
     // The main loop for reading messages
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
         switch (msg.type)
         {
             case MSG_GET_VERSION:
-                const message out = { .type = MSG_VERSION,
+                 message out = { .type = MSG_VERSION,
                                 .data.version = {1,0,0} }; // TODO: add other, i think it should be just return(msg.data.version)
                 send_message(pipe_out, out);
                 break;
@@ -143,7 +143,7 @@ void compute_and_stream(
             }
 
             // Send result to out pipe
-            const message m = { .type = MSG_COMPUTE_DATA,
+            message m = { .type = MSG_COMPUTE_DATA,
                           .data.compute_data.cid = cid,
                           .data.compute_data.i_re = x,
                           .data.compute_data.i_im = y,
@@ -154,7 +154,7 @@ void compute_and_stream(
         }
     }
     // Send termination message to signal chunk being complete
-    const message term = { .type = MSG_DONE };
+    message term = { .type = MSG_DONE };
     send_message(fd_out, term);
 
     return status;

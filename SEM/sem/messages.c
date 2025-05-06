@@ -171,7 +171,7 @@ bool parse_message_buf(const uint8_t *buf, int size, message *msg)
 }
 
 // - function  ----------------------------------------------------------------
-void send_message(int fd, const message *msg)
+void send_message(int fd, message *msg)
 {
    uint8_t buf[256];
    int msg_len;

@@ -89,7 +89,7 @@ bool parse_message_buf(const uint8_t *buf, int size, message *msg);
  * @param fd_out File descriptor of the output pipe.
  * @param msg    Pointer to the message to send.
  */
-void send_message(int fd_out, const message *msg);
+void send_message(int fd_out, message *msg);
 
 
 #endif
