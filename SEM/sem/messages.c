@@ -170,4 +170,26 @@ bool parse_message_buf(const uint8_t *buf, int size, message *msg)
    return ret;
 }
 
+// - function  ----------------------------------------------------------------
+void send_message(int fd, const message *msg)
+{
+   uint8_t buf[256];
+   int msg_len;
+
+   // Marshall the message
+   if (!fill_message_buf(msg, buf, sizeof(buf), &msg_len))
+   {
+      fprintf(stderr, "ERROR: fill_message_buf failed for type %d\n", msg->type);
+      exit(IO_SEND_ERROR);
+   }
+
+   // Send buffer
+   if (send(fd, buf, msg_len) != msg_len)
+   {
+      fprintf(stderr, "ERROR: send() wrote %d of %d bytes for type %d\n",
+              written, msg_len, msg->type);
+      exit(IO_SEND_ERROR);
+   }
+}
+
 /* end of messages.c */

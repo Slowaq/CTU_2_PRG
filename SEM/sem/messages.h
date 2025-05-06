@@ -6,6 +6,7 @@
 
 #ifndef __MESSAGES_H__
 #define __MESSAGES_H__
+#define IO_SEND_ERROR 107
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -80,6 +81,16 @@ bool fill_message_buf(const message *msg, uint8_t *buf, int size, int *len);
 
 // parse the message from buf to msg (unmarshaling)
 bool parse_message_buf(const uint8_t *buf, int size, message *msg);
+
+/**
+ * Marshal a message (compute checksum) and send it over the given pipe.
+ * Exits the program on any send error.
+ *
+ * @param fd_out File descriptor of the output pipe.
+ * @param msg    Pointer to the message to send.
+ */
+void send_message(int fd_out, const message *msg);
+
 
 #endif
 
