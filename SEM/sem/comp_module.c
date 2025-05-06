@@ -9,6 +9,8 @@
 #include "event_queue.h"
 #include "prg_io_nonblock.h"   
 
+// TODO: create header file for comp_module
+
 #define IO_PUTC_ERROR 106
 
 static struct {
@@ -43,7 +45,12 @@ static struct {
     bool abort;
     bool done;
 
-} comp
+} comp;
+
+void compute_and_stream(int fd_out, 
+                        int8_t cid, 
+                        double start_re, double start_im, 
+                        uint8_t n_re, uint8_t n_im)
 
 int main(int argc, char *argv[])
 {
@@ -62,23 +69,75 @@ int main(int argc, char *argv[])
     int msg_len;
     fill_message_buf(&msg, buf, sizeof(uint8_t), &msg_len);
 
-    // Send desired number of bytes to pipe
-    for (int i = 0; i < msg_len)
+    if (send(fname_pipe_out, buf, msg_len) != msg_len)
     {
-        if (io_putc(fname_pipe_out, buf[i]) != 1)
-        {
-            fprintf(stderr, "ERROR during sending byte number %d\n", i);
-            exit(IO_PUTC_ERROR);
-        }
-
+        fprintf(stderr, "ERROR during sending byte number %d\n", i);
+        exit(IO_PUTC_ERROR);
     }
 
-    // Main loop for reading messages
+    // The main loop for reading messages
     uint8_t buf[256];
     do
     {
-        io_getc(pipe_in)
+        if (readn(pipe_in, buf, 1) == -1) break; // TODO: not handling error correctly
+        msg.type = buf[0];
+        if (!get_message_size(buf[0], &msg_len))
+        {
+            fprintf(stderr, "WARNING: unable to load message size")
+            continue;
+        }
+
+        if (readn(pipe_in, buf + 1, msg_len - 1) == -1) break; // TODO: not handling error correctly
+
+        if (!parse_message_buf(buf, msg_len, &msg)) continue; // Invalid checksum or wrong lenght
+
+        switch (msg.type)
+        {
+        case MSG_GET_VERSION:
+            message out = { .type = MSG_VERSION} // TODO: add other, i think it should be just return(msg.data.version)
+            send(pipe_out, out, sizeof(out));
+            break;
+        case MSG_SET_COMPUTE:
+            comp.cid = msg->data.compute.cid; 
+            comp.chunk_re = msg->data.compute.re;
+            comp.chunk_im = msg->data.compute.im;
+            comp.chunk_n_re = msg->data.compute.n_re;
+            comp.chunk_n_im = msg->data.compute.n_im;
+            send(pipe_out, MSG_OK, sizeof(MSG_OK));
+            break;
+        case MSG_COMPUTE:
+            
+            break;
+        case MSG_ABORT:
+            msg.type = MSG_ABORT;
+            send(pipe_out, MSG_OK, sizeof(MSG_OK));
+            break;
+        default:
+            send(pipe_out, MSG_ERROR, sizeof(MSG_ERROR));
+            break;
+        }
+
         quit = is_quit();
     } while (!quit);
     
+}
+
+void compute_and_stream(int fd_out, 
+    int8_t cid, 
+    double start_re, double start_im, 
+    uint8_t n_re, uint8_t n_im)
+{
+    for (int i = 0; i < n_re; ++i)
+    {
+        for (int j = 0; j < n_im; ++j)
+        {
+            if (comp.abort)
+            {
+                send(pipe_out, MSG_ABORT, sizeof(MSG_ABORT));
+                comp.abort = false;
+            }
+
+            
+        }
+    }
 }
