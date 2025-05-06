@@ -50,8 +50,8 @@ int main(int argc, char *argv[])
     my_assert(pipe_in != -1 && pipe_out != -1, __func__, __LINE__, __FILE__);
 
     // Initialize msg and send MSG_STARTUP
-    message msg = { .type = MSG_STARTUP, .data.startup.message =  {'b', 'a', 'l', 'u', 'c', 'w', 'i', 'l'}};
-    send_message(pipe_out, &msg)
+    const message msg = { .type = MSG_STARTUP, .data.startup.message =  {'b', 'a', 'l', 'u', 'c', 'w', 'i', 'l'}};
+    send_message(pipe_out, &msg);
 
     // The main loop for reading messages
     uint8_t msg_buf[256];
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
         msg.type = msg_buf[0];
         if (!get_message_size(msg_buf[0], &msg_len))
         {
-            fprintf(stderr, "WARNING: unable to load message size")
+            fprintf(stderr, "WARNING: unable to load message size");
             continue;
         }
 
@@ -73,9 +73,9 @@ int main(int argc, char *argv[])
         switch (msg.type)
         {
             case MSG_GET_VERSION:
-                message out = { .type = MSG_VERSION,
+                const message out = { .type = MSG_VERSION,
                                 .data.version = {1,0,0} }; // TODO: add other, i think it should be just return(msg.data.version)
-                send_message(pipe_out, out)
+                send_message(pipe_out, out);
                 break;
             case MSG_SET_COMPUTE:
                 comp.cid      = msg.data.set_compute.cid; 
@@ -84,11 +84,9 @@ int main(int argc, char *argv[])
                 comp.d_re     = msg.data.set_compute.d_re;
                 comp.d_im     = msg.data.set_compute.d_im;
                 comp.max_iter = msg.data.set_compute.n;
-                message ok = { .type = MSG_OK };
                 send_message(pipe_out, ok);
                 break;
             case MSG_COMPUTE:
-                message ok = { .type = MSG_OK };
                 send_message(pipe_out, ok);
                 compute_and_stream( pipe_out, 
                                     comp.cid, 
@@ -100,7 +98,6 @@ int main(int argc, char *argv[])
                 break;
             case MSG_ABORT:
                 msg.type = MSG_ABORT;
-                message ok = { .type = MSG_OK };
                 send_message(pipe_out, ok);
                 break;
             default:
@@ -146,7 +143,7 @@ void compute_and_stream(
             }
 
             // Send result to out pipe
-            message m = { .type = MSG_COMPUTE_DATA,
+            const message m = { .type = MSG_COMPUTE_DATA,
                           .data.compute_data.cid = cid,
                           .data.compute_data.i_re = x,
                           .data.compute_data.i_im = y,
@@ -157,8 +154,8 @@ void compute_and_stream(
         }
     }
     // Send termination message to signal chunk being complete
-    message term = { .type = MSG_DONE };
+    const message term = { .type = MSG_DONE };
     send_message(fd_out, term);
-    
+
     return status;
 }

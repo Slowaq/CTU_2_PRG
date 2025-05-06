@@ -12,6 +12,8 @@
 #ifndef __COMP_MODULE_H__
 #define __COMP_MODULE_H__
 
+const message ok = { .type = MSG_OK };
+
 /// ----------------------------------------------------------------------------
 /// @brief Compute a chunk of the Julia fractal and stream the results back to the controller.
 ///        Iterates over a grid of pixels defined by the complex-plane origin (start_re, start_im),
