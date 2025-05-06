@@ -65,6 +65,45 @@ int io_getc(int fd)
 }
 
 /// ----------------------------------------------------------------------------
+ssize_t readn(int fd, void *buf, size_t n)
+{
+   /*
+      Read exactly n number of characters form file descriptor fd and save to buf
+   */
+   int read_total = 0;
+   while (read_total < n)
+   {
+      ssize_t read_ret = read(fd, buf + read_total, n - read_total);
+      if (read_ret > 0) read_total += read_ret;
+      if (read_ret == 0) break;
+      // TODO: handle if read fails e.g.: read_ret < 0
+   }
+
+   if (read_total == n) return read_total;
+   else return -1; // TODO: Dunno if it's the correct way
+}
+
+/// ----------------------------------------------------------------------------
+ssize_t writen(int fd, const void *buf, size_t n)
+{
+   /*
+      Write exactly n bytes from buffer buf to file descriptor fd
+   */
+
+   ssize_t written = 0;
+   while (written < n)
+   {
+      ssize_t write_ret = write(fd, buf + written, n - written);
+      if (write_ret > 0) written += write_ret;
+      if (write_ret == 0) break;
+      // TODO: handle if read fails e.g.: write_ret < 0
+   }
+
+   if (writen == n) return written;
+   else return -1; // TODO: Dunno if it's the correct way
+}
+
+/// ----------------------------------------------------------------------------
 int io_getc_timeout(int fd, int timeout_ms, unsigned char *c)
 {
    struct pollfd ufdr[1];

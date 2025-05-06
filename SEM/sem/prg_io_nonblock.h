@@ -59,6 +59,28 @@ int io_putc(int fd, char c);
 int io_getc(int fd);
 
 /// ----------------------------------------------------------------------------
+/// @brief readn
+
+/// @param fd 
+/// @param buf 
+/// @param n 
+
+/// @return -1 on ERROR, number of read bytes otherwise
+/// ----------------------------------------------------------------------------
+ssize_t readn(int fd, void *buf, size_t n);
+
+/// ----------------------------------------------------------------------------
+/// @brief written
+
+/// @param fd 
+/// @param buf 
+/// @param n 
+
+/// @return -1 on ERROR, number of written bytes otherwise
+/// ----------------------------------------------------------------------------
+ssize_t writen(int fd, const void *buf, size_t n);
+
+/// ----------------------------------------------------------------------------
 /// @brief io_getc_timeout
 /// 
 /// @param fd 
