@@ -1,15 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <pthread.h>
-
-#include "main.h"
-#include "utils.h"
-#include "keyboard.h"
-#include "messages.h"
-#include "event_queue.h"
-#include "prg_io_nonblock.h"   
-
-// TODO: create header file for comp_module
+#include "comp_module.h"
 
 #define IO_PUTC_ERROR 106
 #define MAX_Z_NORM 4        // To stop iteration during computing pixel value
@@ -49,18 +38,9 @@ static struct {
 
 } comp;
 
-void compute_and_stream(
-    int fd_out,             // Pipe for writing messages to control module
-    int8_t cid,             // Chunk identifier
-    double start_re,        // Real part of top left corner of chunk
-    double start_im,        // Imaginary part of top left corner of chunk
-    uint8_t n_re,           // Chunk width (number of horizontal pixels)                   
-    uint8_t n_im            // Chunk height (number of vertical pixels)
-);
-
 int main(int argc, char *argv[])
 {
-    int return = EXIT_SUCCESS;
+    int status = EXIT_SUCCESS;
     const char *fname_pipe_in = argc > 1 ? argv[1] :  "/tmp/computational_module.out";
     const char *fname_pipe_out = argc > 2 ? argv[2] : "/tmp/computational_module.in";
 
@@ -71,10 +51,11 @@ int main(int argc, char *argv[])
 
     // Initialize msg and send MSG_STARTUP
     message msg = { .type = MSG_STARTUP, .data.startup.message =  {'b', 'a', 'l', 'u', 'c', 'w', 'i', 'l'}};
-    send_message(fname_pipe_out, &msg)
+    send_message(pipe_out, &msg)
 
     // The main loop for reading messages
     uint8_t msg_buf[256];
+    int msg_len;
     do
     {
         if (readn(pipe_in, msg_buf, 1) == -1) break; // TODO: not handling error correctly
@@ -87,39 +68,45 @@ int main(int argc, char *argv[])
 
         if (readn(pipe_in, msg_buf + 1, msg_len - 1) == -1) break; // TODO: not handling error correctly
 
-        if (!parse_message_buf(msg_buf, msg_len, &msg)) continue; // Invalid checksum or wrong lenght
+        if (!parse_message_buf(msg_buf, msg_len, &msg)) continue; // Invalid checksum or wrong length
 
         switch (msg.type)
         {
-        case MSG_GET_VERSION:
-            message out = { .type = MSG_VERSION} // TODO: add other, i think it should be just return(msg.data.version)
-            send_message(pipe_out, out)
-            break;
-        case MSG_SET_COMPUTE:
-            comp.cid = msg->data.compute.cid; 
-            comp.chunk_re = msg->data.compute.re;
-            comp.chunk_im = msg->data.compute.im;
-            comp.chunk_n_re = msg->data.compute.n_re;
-            comp.chunk_n_im = msg->data.compute.n_im;
-            send_message(pipe_out, MSG_OK);
-            break;
-        case MSG_COMPUTE:
-            compute_and_stream( pipe_out, 
-                                comp.cid, 
-                                comp.chunk_re, 
-                                comp.chunk_im, 
-                                comp.chunk_n_re,
-                                comp.chunk_n_im
-                                );
-            break;
-        case MSG_ABORT:
-            msg.type = MSG_ABORT;
-            send_message(pipe_out, MSG_OK);
-            break;
-        default:
-            send_message(pipe_out, MSG_ERROR);
-            break;
-        }
+            case MSG_GET_VERSION:
+                message out = { .type = MSG_VERSION,
+                                .data.version = {1,0,0} }; // TODO: add other, i think it should be just return(msg.data.version)
+                send_message(pipe_out, out)
+                break;
+            case MSG_SET_COMPUTE:
+                comp.cid      = msg.data.set_compute.cid; 
+                comp.c_re     = msg.data.set_compute.c_re;
+                comp.c_im     = msg.data.set_compute.c_im;
+                comp.d_re     = msg.data.set_compute.d_re;
+                comp.d_im     = msg.data.set_compute.d_im;
+                comp.max_iter = msg.data.set_compute.n;
+                message ok = { .type = MSG_OK };
+                send_message(pipe_out, ok);
+                break;
+            case MSG_COMPUTE:
+                message ok = { .type = MSG_OK };
+                send_message(pipe_out, ok);
+                compute_and_stream( pipe_out, 
+                                    comp.cid, 
+                                    comp.chunk_re, 
+                                    comp.chunk_im, 
+                                    comp.chunk_n_re,
+                                    comp.chunk_n_im
+                                    );
+                break;
+            case MSG_ABORT:
+                msg.type = MSG_ABORT;
+                message ok = { .type = MSG_OK };
+                send_message(pipe_out, ok);
+                break;
+            default:
+                send_message(pipe_out, MSG_ERROR);
+                break;
+        }// switch end
 
         quit = is_quit();
     } while (!quit);
@@ -128,17 +115,15 @@ int main(int argc, char *argv[])
 
 void compute_and_stream(
     int fd_out, 
-    int8_t cid, 
+    uint8_t cid, 
     double start_re, 
     double start_im, 
     uint8_t n_re, 
     uint8_t n_im)
 {
     // Iteration through every pixel
-    for (int i = 0; i < n_re; ++i)
-    {
-        for (int j = 0; j < n_im; ++j)
-        {
+    for (uint8_t x = 0; x < n_re; ++x) {
+        for (uint8_t y = 0; y < n_im; ++y) {
             if (comp.abort)
             {
                 send_message(pipe_out, MSG_ABORT);
@@ -146,20 +131,19 @@ void compute_and_stream(
                 return;
             }
 
-            double z0_re = start_re + x * n_re;
-            double z0_re = start_im + y * n_im;
+            double z0_re = start_re + x * comp.d_re;
+            double z0_im = start_im + y * comp.d_im;
             double z_re = z0_re;
             double z_im = z0_im;
             uint8_t iter = 0;
 
             // Determine number of iterations of current pixel
-            do
-            {
-                double tmp = z_re*z_re - z_im*z_im + c_re;  
-                z_im = 2*z_re*z_im + c_im;  
-                z_re = tmp;  
-                iter++;  
-            } while (iter < comp.max_iter && (z_re**2 + z_im**2) < MAX_Z_NORM);
+            while (iter < comp.max_iter && (z_re*z_re + z_im*z_im) < MAX_Z_NORM) {
+                double tmp = z_re*z_re - z_im*z_im + comp.c_re;
+                z_im = 2*z_re*z_im + comp.c_im;
+                z_re = tmp;
+                ++iter;
+            }
 
             // Send result to out pipe
             message m = { .type = MSG_COMPUTE_DATA,
@@ -170,9 +154,11 @@ void compute_and_stream(
                         };
             send_message(fd_out, m);
 
-            // Send termination message to signal chunk being complete
-            message term = { .type = MSG_DONE };
-            send_message(fd_out, term);
         }
     }
+    // Send termination message to signal chunk being complete
+    message term = { .type = MSG_DONE };
+    send_message(fd_out, term);
+    
+    return status;
 }
