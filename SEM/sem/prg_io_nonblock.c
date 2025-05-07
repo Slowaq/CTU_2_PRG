@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <termios.h>
+#include <stdint.h>
 
 #include <poll.h>
 
@@ -73,7 +74,7 @@ ssize_t readn(int fd, void *buf, size_t n)
    int read_total = 0;
    while (read_total < n)
    {
-      ssize_t read_ret = read(fd, buf + read_total, n - read_total);
+      ssize_t read_ret = read(fd, (char*)buf + read_total, n - read_total);
       if (read_ret > 0) read_total += read_ret;
       if (read_ret == 0) break;
       // TODO: handle if read fails e.g.: read_ret < 0
@@ -90,16 +91,16 @@ ssize_t writen(int fd, const void *buf, size_t n)
       Write exactly n bytes from buffer buf to file descriptor fd
    */
 
-   ssize_t written = 0;
-   while (written < n)
+   int written_num = 0;
+   while (written_num < n)
    {
-      ssize_t write_ret = write(fd, buf + written, n - written);
-      if (write_ret > 0) written += write_ret;
+      int write_ret = write(fd, (char*)buf + written_num, n - written_num);
+      if (write_ret > 0) written_num += write_ret;
       if (write_ret == 0) break;
       // TODO: handle if read fails e.g.: write_ret < 0
    }
 
-   if (writen == n) return written;
+   if (written_num == n) return written_num;
    else return -1; // TODO: Dunno if it's the correct way
 }
 
@@ -122,9 +123,10 @@ int send(int fd, void *buf, size_t len)
    /*
       Sends len number of bytes from buffer buf to file descriptor fd
    */
+   char *b = (char*)buf;
    for (int i = 0; i < len; ++i)
    {
-      if (io_putc(fd, &buf[i]) != 1) return -1;
+      if (io_putc(fd, b[i]) != 1) return -1;
    }
    return len;
 }
