@@ -47,7 +47,7 @@ static int pipe_in  = -1;
 static int pipe_out = -1;
 static message msg;
 
-void *compute_module_thread(void *arg)
+void compute_module_thread(void *arg)
 {
     int *fds   = (int*)arg;
     int fd_in  = fds[0];
@@ -62,7 +62,7 @@ void *compute_module_thread(void *arg)
     return NULL;
 }
 
-void comp_module_init(int pipe_in_fd, int pipe_out_fd)
+void *comp_module_init(int pipe_in_fd, int pipe_out_fd)
 {
     pipe_out  = pipe_out_fd;
     pipe_in = pipe_in_fd;
