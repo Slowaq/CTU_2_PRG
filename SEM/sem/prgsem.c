@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "keyboard.h"
 #include "messages.h"
+#include "compute_module.h"
 #include "event_queue.h"
 #include "prg_io_nonblock.h"    
 
@@ -31,15 +32,20 @@ int main(int argc, char *argv[]){
         KEYBOARD_THRD,
         READ_PIPE_THRD,
         MAIN_THRD,
+        COMPUTE_THRD,
         NUM_THREADS
     };
 
-    const char *thrd_names[] = {"Keyboard", "Readpipe", "Main"};
-    void *(*thrd_functions[])(void*) = { keyboard_thread, read_pipe_thread, main_thread};
+    const char *thrd_names[] = {"Keyboard", "Readpipe", "Main", "Compute" };
+    void *(*thrd_functions[])(void*) = { keyboard_thread, read_pipe_thread, main_thread, compute_module_thread };
     pthread_t threads[NUM_THREADS];
     void *thrd_data[NUM_THREADS] = {0};
     thrd_data[READ_PIPE_THRD] = &pipe_in;
     thrd_data[MAIN_THRD] = &pipe_out;
+    static int compute_fds[2];              // COMPUTE_THRD takes needs both pipes
+    compute_fds[0] = pipe_out;
+    compute_fds[1] = pipe_in;
+    thrd_data[COMPUTE_THRD] = compute_fds;
 
     for (int i = 0; i < NUM_THREADS; ++i) {
         int r = pthread_create(&threads[i], NULL, thrd_functions[i], thrd_data[i]);

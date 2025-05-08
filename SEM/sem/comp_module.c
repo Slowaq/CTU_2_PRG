@@ -1,6 +1,7 @@
 #include "comp_module.h"
 
 #define IO_PUTC_ERROR 106
+#define MALLOC_ERROR 108
 #define MAX_Z_NORM 4        // To stop iteration during computing pixel value
 
 static struct {
@@ -38,22 +39,44 @@ static struct {
 
 } comp;
 
-int main(int argc, char *argv[])
+static int pipe_in  = -1;
+static int pipe_out = -1;
+
+void *compute_module_thread(void *arg)
 {
-    int status = EXIT_SUCCESS;
-    const char *fname_pipe_in = argc > 1 ? argv[1] :  "/tmp/computational_module.out";
-    const char *fname_pipe_out = argc > 2 ? argv[2] : "/tmp/computational_module.in";
+    int fd_in = (*arg)[0];
+    int fd_out = (*arg)[1];
 
-    int pipe_in = io_open_read(fname_pipe_in);
-    int pipe_out = io_open_write(fname_pipe_out);
+    comp_module_init(fd_in, fd_out);
 
-    my_assert(pipe_in != -1 && pipe_out != -1, __func__, __LINE__, __FILE__);
+    comp_module_run();
+
+    pipe_clean_up();
+
+    return NULL;
+}
+
+void comp_module_init(int pipe_in_fd, int pipe_out_fd)
+{
+    pipe_in  = pipe_in_fd;
+    pipe_out = pipe_out_fd;
+
+    comp tmp = (comp)malloc(comp);
+    if (!tmp){
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(MALLOC_ERROR); // Exit correctly with freed memory
+    }
 
     // Initialize msg and send MSG_STARTUP
-    message msg = { .type = MSG_STARTUP, .data.startup.message =  {'b', 'a', 'l', 'u', 'c', 'w', 'i', 'l'}};
+    message msg = { .type = MSG_STARTUP, 
+                    .data.startup.message =  {'b', 'a', 'l', 'u', 'c', 'w', 'i', 'l'}
+    };
     send_message(pipe_out, &msg);
 
-    // The main loop for reading messages
+}
+
+void comp_module_run(void)
+{
     uint8_t msg_buf[256];
     int msg_len;
     bool quit = false;
@@ -110,7 +133,6 @@ int main(int argc, char *argv[])
 
         quit = is_quit();
     } while (!quit);
-    return status;
 }
 
 void compute_and_stream(
@@ -160,4 +182,10 @@ void compute_and_stream(
     // Send termination message to signal chunk being complete
     message term = { .type = MSG_DONE };
     send_message(fd_out, &term);
+}
+
+void pipe_clean_up(void)
+{
+    if (pipe_out >= 0) io_close(pipe_out);
+    if (pipe_in >= 0) io_close(pipe_in);
 }
