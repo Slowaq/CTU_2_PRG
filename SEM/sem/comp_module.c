@@ -1,8 +1,12 @@
+#include <string.h>
+
 #include "comp_module.h"
 
 #define IO_PUTC_ERROR 106
 #define MALLOC_ERROR 108
 #define MAX_Z_NORM 4        // To stop iteration during computing pixel value
+
+const message alright = { .type = MSG_OK };
 
 static struct {
     double c_re;            // Fractal Parameter
@@ -41,31 +45,28 @@ static struct {
 
 static int pipe_in  = -1;
 static int pipe_out = -1;
+static message msg;
 
 void *compute_module_thread(void *arg)
 {
-    int fd_in = (*arg)[0];
-    int fd_out = (*arg)[1];
+    int *fds   = (int*)arg;
+    int fd_in  = fds[0];
+    int fd_out = fds[1];
 
     comp_module_init(fd_in, fd_out);
 
     comp_module_run();
 
-    pipe_clean_up();
+    comp_module_cleanup();
 
     return NULL;
 }
 
 void comp_module_init(int pipe_in_fd, int pipe_out_fd)
 {
-    pipe_in  = pipe_in_fd;
-    pipe_out = pipe_out_fd;
-
-    comp tmp = (comp)malloc(comp);
-    if (!tmp){
-        fprintf(stderr, "Memory allocation failed\n");
-        exit(MALLOC_ERROR); // Exit correctly with freed memory
-    }
+    pipe_out  = pipe_out_fd;
+    pipe_in = pipe_in_fd;
+    memset(&comp, 0, sizeof(comp));
 
     // Initialize msg and send MSG_STARTUP
     message msg = { .type = MSG_STARTUP, 
@@ -108,10 +109,10 @@ void comp_module_run(void)
                 comp.d_re     = msg.data.set_compute.d_re;
                 comp.d_im     = msg.data.set_compute.d_im;
                 comp.max_iter = msg.data.set_compute.n;
-                send_message(pipe_out, &ok);
+                send_message(pipe_out, &alright);
                 break;
             case MSG_COMPUTE:
-                send_message(pipe_out, &ok);
+                send_message(pipe_out, &alright);
                 compute_and_stream( pipe_out, 
                                     comp.cid, 
                                     comp.chunk_re, 
@@ -122,7 +123,7 @@ void comp_module_run(void)
                 break;
             case MSG_ABORT:
                 msg.type = MSG_ABORT;
-                send_message(pipe_out, &ok);
+                send_message(pipe_out, &alright);
                 break;
             default: {
                 message err = { .type = MSG_ERROR };
@@ -184,7 +185,7 @@ void compute_and_stream(
     send_message(fd_out, &term);
 }
 
-void pipe_clean_up(void)
+void comp_module_cleanup(void)
 {
     if (pipe_out >= 0) io_close(pipe_out);
     if (pipe_in >= 0) io_close(pipe_in);

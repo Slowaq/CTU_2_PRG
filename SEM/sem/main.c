@@ -73,7 +73,7 @@ void process_pipe_message(event * const ev){
             info("OK");
             break;
         case MSG_VERSION:
-            fprintf(stderr, "INFO: Module version %d.%d-p%d\n", msg->data.version.major, msg->data.version.minor, msg->data.version.patch);
+            fprintf(stderr, "INFO: Module version %d.%d-p%d\n\r", msg->data.version.major, msg->data.version.minor, msg->data.version.patch);
             break;
         case MSG_COMPUTE_DATA:
             if (!is_abort()){

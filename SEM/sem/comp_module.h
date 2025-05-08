@@ -12,8 +12,6 @@
 #ifndef __COMP_MODULE_H__
 #define __COMP_MODULE_H__
 
-const message ok = { .type = MSG_OK };
-
 /// ----------------------------------------------------------------------------
 /// @brief Thread entry point for compute_module
 ///
@@ -71,6 +69,6 @@ void compute_and_stream(
 ///
 /// @param  
 /// ----------------------------------------------------------------------------
-void pipe_clean_up(void);
+void comp_module_cleanup(void);
 
 #endif

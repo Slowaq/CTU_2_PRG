@@ -45,7 +45,7 @@ void *keyboard_thread(void *d){
     queue_push(ev);
     
     call_termios(1); // restore terminal settings
-    fprintf(stderr, "keyboard_thread - finished\n");
+    fprintf(stderr, "keyboard_thread - finished\n\r");
     return NULL;
 }
 

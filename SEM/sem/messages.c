@@ -180,14 +180,14 @@ void send_message(int fd, const message *msg)
    // Marshall the message
    if (!fill_message_buf(msg, buf, sizeof(buf), &msg_len))
    {
-      fprintf(stderr, "ERROR: fill_message_buf failed for type %d\n", msg->type);
+      fprintf(stderr, "ERROR: fill_message_buf failed for type %d\n\r", msg->type);
       exit(IO_SEND_ERROR);
    }
 
    // Send buffer
    if (send(fd, buf, msg_len) != msg_len)
    {
-      fprintf(stderr, "ERROR: send() encountered error at writing bite %d for type %d\n",
+      fprintf(stderr, "ERROR: send() encountered error at writing bite %d for type %d\n\r",
               msg_len, msg->type);
       exit(IO_SEND_ERROR);
    }

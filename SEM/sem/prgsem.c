@@ -6,7 +6,7 @@
 #include "utils.h"
 #include "keyboard.h"
 #include "messages.h"
-#include "compute_module.h"
+#include "comp_module.h"
 #include "event_queue.h"
 #include "prg_io_nonblock.h"    
 
@@ -43,8 +43,8 @@ int main(int argc, char *argv[]){
     thrd_data[READ_PIPE_THRD] = &pipe_in;
     thrd_data[MAIN_THRD] = &pipe_out;
     static int compute_fds[2];              // COMPUTE_THRD takes needs both pipes
-    compute_fds[0] = pipe_out;
-    compute_fds[1] = pipe_in;
+    compute_fds[0] = pipe_in;
+    compute_fds[1] = pipe_out;
     thrd_data[COMPUTE_THRD] = compute_fds;
 
     for (int i = 0; i < NUM_THREADS; ++i) {
@@ -70,7 +70,7 @@ void *read_pipe_thread(void *d){
     my_assert(d != NULL, __func__, __LINE__, __FILE__);
     int pipe_in = *(int*)d;
     printf("%i\n",*(int*)d );
-    fprintf(stderr, "read_pipe_thread - start \n");
+    fprintf(stderr, "read_pipe_thread - start \n\r");
     bool end = false;
     uint8_t msg_buf[sizeof(message)];
     int i = 0;
@@ -87,7 +87,7 @@ void *read_pipe_thread(void *d){
                 if (get_message_size(c, &len)){
                     msg_buf[i++] = c;
                 } else {
-                    fprintf(stderr, "ERROR: unknown message type 0x%x\n", c);
+                    fprintf(stderr, "ERROR: unknown message type 0x%x\n\r", c);
                 }
             } else { //read remaining bytes of the message
                 msg_buf[i++] = c;
@@ -99,7 +99,7 @@ void *read_pipe_thread(void *d){
                     ev.data.msg = msg;
                     queue_push(ev);
                 } else {
-                    fprintf(stderr, "ERROR: cannot parse message type %d\n", msg_buf[0]);
+                    fprintf(stderr, "ERROR: cannot parse message type %d\n\r", msg_buf[0]);
                     free(msg);
                 }
                 i = len = 0;
@@ -107,14 +107,14 @@ void *read_pipe_thread(void *d){
         } else if (r == 0){ // timeout
 
         } else{ //error
-            fprintf(stderr, "ERROR: reading for pipe\n");
+            fprintf(stderr, "ERROR: reading for pipe\n\r");
             set_quit();
             event ev = { .type = EV_QUIT };
             queue_push(ev);
         }
         end = is_quit();
     } // end while 
-    fprintf(stderr, "read_pipe_thread - finished\n");
+    fprintf(stderr, "read_pipe_thread - finished\n\r");
     return NULL;
 }
 
