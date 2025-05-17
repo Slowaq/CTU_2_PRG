@@ -1,0 +1,3 @@
+[submodule "SEM/sem/SEM/sem/stb"]
+	path = SEM/sem/SEM/sem/stb
+	url = https://github.com/nothings/stb.git

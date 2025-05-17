@@ -25,8 +25,20 @@ typedef enum {
    MSG_SET_COMPUTE,      // set computation parameters
    MSG_COMPUTE,          // request computation of a batch of tasks (chunk_id, nbr_tasks)
    MSG_COMPUTE_DATA,     // computed result (chunk_id, result)
+   MSG_COMPUTE_BURST,    // send whole computed chunk all at once
    MSG_NBR
 } message_type;
+
+typedef struct {
+   uint8_t chunk_id;
+   uint16_t n_re;
+   uint16_t n_im;
+   uint16_t length; // number of pixels in the data message
+   uint8_t **iters;  // pointer to the array of the compute number of iterations 
+                    // particular values of the array are transmitted; thus, 
+                    // marshaling and unmarshaling have to be properly handled
+                    // together with the proper memory managing
+} msg_compute_data_burst; 
 
 #define STARTUP_MSG_LEN 9
 
@@ -71,6 +83,7 @@ typedef struct {
       msg_set_compute set_compute;
       msg_compute compute;
       msg_compute_data compute_data;
+      msg_compute_data_burst compute_data_burst;
    } data;
    uint8_t cksum; // message command
 } message;

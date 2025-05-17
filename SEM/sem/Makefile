@@ -1,30 +1,36 @@
-CFLAGS += -Wall -Werror -std=gnu99 -g -pedantic
-LDFLAGS = -lpthread
+# Compiler and flags
+CC      := gcc
+CFLAGS  := -Wall -Werror -std=gnu99 -g -pedantic -I./stb
+LDFLAGS := -lpthread -lm -lSDL2 -lSDL2_image
 
-HW = prgsemestral
-TARGET = prgsem
-COMP_MODULE = comp_module
+# Targets
+PRG      := prgsem
+COMP     := comp_module
 
-# Add SDL flags only to prgsem
-SDL_CFLAGS = $(shell sdl2-config --cflags)
-SDL_LDFLAGS = $(shell sdl2-config --libs) -lSDL2_image
+# Source files
+PRG_SRCS := computation.c event_queue.c gui.c keyboard.c main.c messages.c \
+            prg_io_nonblock.c prgsem.c utils.c xwin_sdl.c
+PRG_OBJS := $(PRG_SRCS:.c=.o)
 
-# Object files for prgsem, excluding comp_module.o
-OBJS = $(filter-out comp_module.o, $(patsubst %.c,%.o,$(wildcard *.c)))
+COMP_SRCS := comp_module.c prg_io_nonblock.c utils.c messages.c event_queue.c
+COMP_OBJS := $(COMP_SRCS:.c=.o)
 
-all: $(TARGET) $(COMP_MODULE)
+all: $(PRG) $(COMP)
 
-# Rule to build prgsem (with SDL and pthread)
-$(TARGET): $(OBJS)
-	$(CC) $(OBJS) $(LDFLAGS) $(SDL_LDFLAGS) -o $@
+# prgsem needs stb_image_write.o
+$(PRG): $(PRG_OBJS) stb_image_write.o
+	$(CC) $(PRG_OBJS) stb_image_write.o $(LDFLAGS) -o $@
 
-# Rule to build comp_module
-$(COMP_MODULE): comp_module.o
-	$(CC) comp_module.o $(LDFLAGS) -o $@
+$(COMP): $(COMP_OBJS)
+	$(CC) $(COMP_OBJS) $(LDFLAGS) -o $@
 
-# Compile all .c to .o
+# Generic .c → .o
 %.o: %.c
-	$(CC) -c $(CFLAGS) $(SDL_CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Build the single stb_image_write.o from the header with the implementation macro
+stb_image_write.o: stb/stb_image_write.h
+	$(CC) $(CFLAGS) -DSTB_IMAGE_WRITE_IMPLEMENTATION -x c -c stb/stb_image_write.h -o stb_image_write.o
 
 clean:
-	rm -f $(TARGET) $(COMP_MODULE) *.o
+	rm -f $(PRG) $(COMP) *.o

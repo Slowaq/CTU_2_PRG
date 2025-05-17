@@ -33,6 +33,9 @@ bool get_message_size(uint8_t msg_type, int *len)
       case MSG_COMPUTE:
          *len = 2 + 1 + 2 * sizeof(double) + 2; // 2 + cid (8bit) + 2x(double - re, im) + 2 ( n_re, n_im)
          break;
+      case MSG_COMPUTE_BURST:
+         *len = -1;
+         break;
       case MSG_COMPUTE_DATA:
          *len = 2 + 4; // cid, dx, dy, iter
          break;
@@ -40,6 +43,7 @@ bool get_message_size(uint8_t msg_type, int *len)
          ret = false;
          break;
    }
+   // fprintf(stderr, "dlzka: %d", *len);
    return ret;
 }
 
@@ -88,6 +92,21 @@ bool fill_message_buf(const message *msg, uint8_t *buf, int size, int *len)
          buf[2 + 2 * sizeof(double) + 1] = msg->data.compute.n_im;
          *len = 1 + 1 + 2 * sizeof(double) + 2;
          break;
+      case MSG_COMPUTE_BURST: {
+         // msg->data.compute_data_burst.iters is a uint8_t** of rows
+         int L = msg->data.compute_data_burst.length;
+         buf[1] = msg->data.compute_data_burst.chunk_id;
+         buf[2] = (L >> 8) & 0xFF;
+         buf[3] = L & 0xFF;
+         // now copy payload
+         uint8_t **rows = msg->data.compute_data_burst.iters;
+         int w = msg->data.compute_data_burst.n_re;
+         int h = msg->data.compute_data_burst.n_im;
+         for (int x = 0; x < w; ++x)
+            memcpy(buf + 4 + x*h, rows[x], h);
+         *len = 4 + L;
+         break;
+      }
       case MSG_COMPUTE_DATA:
          buf[1] = msg->data.compute_data.cid;
          buf[2] = msg->data.compute_data.i_re;
@@ -157,6 +176,24 @@ bool parse_message_buf(const uint8_t *buf, int size, message *msg)
             msg->data.compute.n_re = buf[2 + 2 * sizeof(double) + 0];
             msg->data.compute.n_im = buf[2 + 2 * sizeof(double) + 1];
             break;
+         case MSG_COMPUTE_BURST:{
+            msg->data.compute_data_burst.chunk_id = buf[1];
+            msg->data.compute_data_burst.length = ( buf[2] << 8 )|buf[3];
+
+            int L = msg->data.compute_data_burst.length;
+            int w = msg->data.compute_data_burst.n_re;
+            int h = msg->data.compute_data_burst.n_im;
+            static uint8_t* backing = NULL;
+            backing = malloc(L);
+            if (!backing) exit(1);
+            memcpy(backing, buf+4, L);
+
+            uint8_t **rows = malloc(w * sizeof *rows);
+            for (int x=0; x<w; ++x)
+               rows[x] = backing + x*h;
+            msg->data.compute_data_burst.iters = rows;
+            break;
+         }
          case MSG_COMPUTE_DATA:  // type + chunk_id + task_id + result
             msg->data.compute_data.cid = buf[1];
             msg->data.compute_data.i_re = buf[2];

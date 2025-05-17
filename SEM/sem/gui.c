@@ -31,3 +31,18 @@ void gui_refresh(void){
     }
 }
 
+void gui_resize(int new_w, int new_h){
+    if (gui.img) {
+      free(gui.img);
+      xwin_close();
+    }
+
+    gui.w = new_w;
+    gui.h = new_h;
+    gui.img = my_alloc(gui.w * gui.h * 3);
+    my_assert(xwin_init(gui.w, gui.h) == 0, __func__, __LINE__, __FILE__);
+}
+
+unsigned char *gui_get_pixels(void){
+    return gui.img;
+}

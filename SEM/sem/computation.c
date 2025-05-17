@@ -3,6 +3,13 @@
 #include "messages.h"
 
 #include <stdbool.h>
+#include <string.h>
+#include <math.h>
+
+#define MAX_Z_NORM 128
+#define MAX_ITERS 10000
+#define EXTRA_ITERS 20
+
 
 static struct {
     double c_re;
@@ -37,10 +44,10 @@ static struct {
     bool done;
 
 } comp = {
-    .c_re = -0.4,
-    .c_im = 0.6,
+    .c_re = -0.5251993,
+    .c_im = -0.5251993,
 
-    .n = 60,
+    .n = 600,
 
     .range_re_min = -1.6,
     .range_re_max = 1.6,
@@ -58,6 +65,9 @@ static struct {
     .abort = false,
     .done = false,
 };
+
+int base_iters = 60;
+double total_zoom = 1.0;
 
 void computation_init(void){
     comp.grid = my_alloc(comp.grid_w * comp.grid_h);
@@ -157,7 +167,136 @@ void update_data(const msg_compute_data *computation_data){
             comp.computing = false;
         }
     } else {
-        error("Received chunk with unexpected chunk id (cid)");
+        fprintf(stderr,"Received chunk with unexpected chunk id (cid)%d %d", computation_data->cid, comp.cid);
     };
+}
+
+void param_reset(void){
+  comp.cid       = 0;
+  comp.cur_x     = 0;
+  comp.cur_y     = 0;
+  comp.chunk_re  = comp.range_re_min;
+  comp.chunk_im  = comp.range_im_max;
+  comp.computing = false;
+  comp.abort     = false;
+  comp.done      = false;
+
+  memset(comp.grid, 0, comp.grid_w * comp.grid_h);
+}
+
+uint8_t *computation_grid_ptr(void){
+  return comp.grid;
+}
+
+void computation_set_resolution(int new_w, int new_h){
+    if (comp.grid) free(comp.grid);
+
+    comp.grid_w = new_w;
+    comp.grid_h = new_h;
+
+    comp.grid = my_alloc(comp.grid_w * comp.grid_h);
+    comp.d_re = (comp.range_re_max - comp.range_re_min) / (double)comp.grid_w;
+    comp.d_im = -(comp.range_im_max - comp.range_im_min) / (double)comp.grid_h;
+
+    comp.nbr_chunks = (comp.grid_w * comp.grid_h) / (comp.chunk_n_re * comp.chunk_n_im);
+
+    param_reset();
+}
+
+void computation_update_steps(void) {
+    comp.d_re = (comp.range_re_max - comp.range_re_min) / (double)comp.grid_w;
+    comp.d_im = -(comp.range_im_max - comp.range_im_min) / (double)comp.grid_h;
+    comp.nbr_chunks = (comp.grid_w * comp.grid_h) / (comp.chunk_n_re * comp.chunk_n_im);
+}
+
+
+double computation_get_c_re(void) {return comp.c_re;}
+double computation_get_c_im(void) {return comp.c_im;}
+
+void computation_set_c(double new_re, double new_im){
+    comp.c_re = new_re;
+    comp.c_im = new_im;
+
+    param_reset();
+}
+
+void computation_pan(double dx, double dy){
+    double w = comp.range_re_max - comp.range_re_min;
+    double h = comp.range_im_max - comp.range_im_min;
+
+    comp.range_re_max += w * dx;
+    comp.range_re_min += w * dx;
+    comp.range_im_max += h * dy;
+    comp.range_im_min += h * dy;
+
+    param_reset();
+}
+
+void computation_zoom(double factor){
+    double cx = 0.5 * (comp.range_re_min + comp.range_re_max);
+    double cy = 0.5 * (comp.range_im_min + comp.range_im_max);
+    double w  = (comp.range_re_max - comp.range_re_min) * factor;
+    double h  = (comp.range_im_max - comp.range_im_min) * factor;
+    
+    comp.range_re_min = cx - 0.5 * w;
+    comp.range_re_max = cx + 0.5 * w;
+    comp.range_im_min = cy - 0.5 * h;
+    comp.range_im_max = cy + 0.5 * h;
+
+    param_reset();
+}
+
+void computation_zoom_at(double center_re, double center_im, double factor) {
+    double re_min = comp.range_re_min;
+    double re_max = comp.range_re_max;
+    double im_min = comp.range_im_min;
+    double im_max = comp.range_im_max;
+
+    double w = re_max - re_min;
+    double h = im_max - im_min;
+
+    double w_new = w * factor;
+    double h_new = h * factor;
+
+    double rx = (center_re - re_min) / w;
+    double ry = (center_im - im_min) / h;
+
+    comp.range_re_min = center_re - rx * w_new;
+    comp.range_re_max = comp.range_re_min + w_new;
+    comp.range_im_min = center_im - ry * h_new;
+    comp.range_im_max = comp.range_im_min + h_new;
+
+    total_zoom *= factor;
+    double zoom_level = -log10(total_zoom);
+    comp.n = base_iters + (int)(zoom_level * EXTRA_ITERS);
+
+    if (comp.n < base_iters) comp.n = base_iters;
+    if (comp.n > MAX_ITERS)      comp.n = MAX_ITERS;
+
+    param_reset();
+}
+
+void computation_compute_full_frame(void) {
+    // const int W = comp.grid_w, H = comp.grid_h;
+    int W, H;
+    get_grid_size(&W, &H);
+    const double dr = (comp.range_re_max - comp.range_re_min) / W;
+    const double di = -(comp.range_im_max - comp.range_im_min) / H;
+
+    for (int y = 0; y < H; ++y) {
+      double zy = comp.range_im_max + y * di;
+      for (int x = 0; x < W; ++x) {
+        double zx = comp.range_re_min + x * dr;
+        double zr = zx, zi = zy;
+        int iter = 0;
+        while (iter < comp.n && (zr*zr + zi*zi) < MAX_Z_NORM) {
+          double tmp = zr*zr - zi*zi + comp.c_re;
+          zi = 2*zr*zi + comp.c_im;
+          zr = tmp;
+          ++iter;
+        }
+        comp.grid[y*W + x] = iter;
+      }
+    }
 }
 

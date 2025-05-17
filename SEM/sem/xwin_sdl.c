@@ -1,5 +1,5 @@
-#include <SDL.h>
-#include <SDL_image.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 
 #include "utils.h"
 
@@ -60,6 +60,7 @@ void xwin_close(void)
    my_assert(win != NULL, __func__, __LINE__, __FILE__);
    SDL_DestroyWindow(win);
    SDL_Quit();
+   win = NULL;
 }
 
 void xwin_redraw(int w, int h, unsigned char *img)
