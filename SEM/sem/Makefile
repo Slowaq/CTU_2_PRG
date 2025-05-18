@@ -1,7 +1,7 @@
 # Compiler and flags
 CC      := gcc
 CFLAGS  := -Wall -Werror -std=gnu99 -g -pedantic -I./stb
-LDFLAGS := -lpthread -lm -lSDL2 -lSDL2_image
+LDFLAGS := -fsanitize=address -lpthread -lm -lSDL2 -lSDL2_image
 
 # Targets
 PRG      := prgsem

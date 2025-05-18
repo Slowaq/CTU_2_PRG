@@ -26,6 +26,7 @@ typedef enum {
    MSG_COMPUTE,          // request computation of a batch of tasks (chunk_id, nbr_tasks)
    MSG_COMPUTE_DATA,     // computed result (chunk_id, result)
    MSG_COMPUTE_BURST,    // send whole computed chunk all at once
+   MSG_COMPUTING,
    MSG_NBR
 } message_type;
 

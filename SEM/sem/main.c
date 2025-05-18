@@ -68,7 +68,6 @@ void *main_thread(void *d){
                 break;
             case EV_COMPUTE_CPU:
                 enable_comp();
-                fprintf(stderr,"TUOSM\n");
                 info (compute(&msg) ? "compute using CPU" : "fail compute using CPU");
                 break;
             case EV_ABORT:
@@ -360,7 +359,7 @@ void *anim_thread_z(void *_){
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
         info("Video written successfully to zoom.mp4\n");
     } else {
-        fprintf(stderr, "ffmpeg exited with status %d\n", WEXITSTATUS(status));
+        fprintf(stderr, "ffmpeg exited\n");
     }
     }
 
@@ -395,12 +394,10 @@ void process_pipe_message(event * const ev){
             //queue_push((event){ .type = EV_COMPUTE });
             break;
         case MSG_DONE:
-            fprintf(stderr, "Pici co to nejde\n\r");
             gui_refresh();
             if (is_done()){
                 info("Computation done");
             } else {
-                fprintf(stderr, "ev.type: %d", ev->type);
                 event ev = { .type = EV_COMPUTE_CPU};
                 queue_push(ev);
             }

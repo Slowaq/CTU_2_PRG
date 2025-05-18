@@ -9,6 +9,7 @@
 #define IO_PUTC_ERROR 106
 #define MAX_Z_NORM 4        // To stop iteration during computing pixel value
 
+
 static struct {
     double c_re;            // Fractal Parameter
     double c_im;
@@ -92,7 +93,6 @@ int main(int argc, char *argv[])
         if (readn(pipe_in, msg_buf, 1) == -1) break; // TODO: not handling error correctly
         if (msg_buf[0] == MSG_COMPUTE && burst != NULL && burst[0] == 'b') 
         {
-            fprintf(stderr, "Jebo!\n");
             msg_buf[0] = MSG_COMPUTE_BURST;
         } 
         msg.type = msg_buf[0];
@@ -196,7 +196,6 @@ int main(int argc, char *argv[])
                 send_message(pipe_out, &done);
                 break;}
             case MSG_COMPUTE_BURST:{
-                fprintf(stderr, "debilko!\n");
                 comp.cid      = msg.data.compute.cid;
                 comp.chunk_re = msg.data.compute.re;
                 comp.chunk_im = msg.data.compute.im;
@@ -244,7 +243,6 @@ int main(int argc, char *argv[])
             case MSG_ABORT:
                 comp.abort = true;
                 comp.computing = false;
-                fprintf(stderr, "TU SOM CHUJU");
                 send_message(pipe_out, &ok);
                 break;
             default: {

@@ -84,7 +84,7 @@ void *read_pipe_thread(void *d){
                 } else {
                     fprintf(stderr, "ERROR: unknown message type 0x%x\n", c);
                 }
-            } else { //read remaining bytes of the message
+            } else { // read remaining bytes of the message
                 msg_buf[i++] = c;
             }
             if (len > 0 && i == len){
@@ -101,7 +101,7 @@ void *read_pipe_thread(void *d){
             }
         } else if (r == 0){ // timeout
 
-        } else{ //error
+        } else{ // error
             fprintf(stderr, "ERROR: reading for pipe\n");
             set_quit();
             event ev = { .type = EV_QUIT };
