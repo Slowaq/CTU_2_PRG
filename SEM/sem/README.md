@@ -35,12 +35,14 @@ Make sure the following packages are installed:
 - GCC with AddressSanitizer support
 - SDL2 and SDL2_image development libraries
 - pthreads
+- stb
 - `make`
 
 For example, on Debian/Ubuntu:
 
 ```bash
 sudo apt install build-essential libsdl2-dev libsdl2-image-dev
+git copy https://github.com/nothings/stb
 ```
 
 Using GitHub Codespaces the output window will be opened on port 8080
